@@ -275,7 +275,7 @@
         <li><strong>Table content:</strong> Tables extracted as disorganised strings with misaligned columns.</li>
         <li><strong>Figure captions:</strong> "Figure 5.2: …" fragments that carry little semantic value but occupy chunks.</li>
         <li><strong>Hyphenation:</strong> Words split across lines (e.g. "hyper-\ntension") required rejoining.</li>
-        <li><strong>Unicode / encoding:</strong> The project path contains Hebrew characters (<code>בניית RAG</code>) which caused <code>UnicodeEncodeError</code> on Windows when subprocess stdout used cp1252. Fixed with <code>PYTHONIOENCODING=utf-8</code> and <code>PYTHONUTF8=1</code>.</li>
+        <li><strong>Unicode / encoding:</strong> The original project path contained Hebrew characters which caused <code>UnicodeEncodeError</code> on Windows when subprocess stdout used cp1252. Fixed with <code>PYTHONIOENCODING=utf-8</code> and <code>PYTHONUTF8=1</code>. Project is now named <code>midRAG</code>.</li>
       </ul>
     </div>
   </div>
