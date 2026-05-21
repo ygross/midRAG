@@ -1,0 +1,25 @@
+# Pediatric RAG Pipeline – Python dependencies
+# Tested on Python 3.10+
+
+# PDF extraction
+PyMuPDF>=1.23.0
+
+# Embeddings
+sentence-transformers>=2.7.0
+
+# Vector index — plain numpy (no external vector DB required)
+numpy>=1.24.0
+
+# LLM (answer generation)
+anthropic>=0.28.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Progress bars (used during index build)
+tqdm>=4.66.0
+
+# HuggingFace local model support (optional — only needed for non-Claude models)
+# huggingface_hub>=0.24.0
+# transformers>=4.40.0
+# torch>=2.0.0

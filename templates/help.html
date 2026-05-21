@@ -185,6 +185,17 @@
     .faq-q { font-size: .88rem; font-weight: 700; color: #1a3a5c; margin-bottom: 8px; display: flex; gap: 10px; align-items: flex-start; }
     .faq-q-badge { background: #2e6da4; color: white; border-radius: 50%; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
     .faq-a { font-size: .84rem; color: #3a5a7a; line-height: 1.75; padding-left: 32px; }
+
+    /* Download cards */
+    .dl-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+    .dl-card { display: flex; align-items: center; gap: 14px; background: #f7fafd; border: 1px solid #d8e4f0; border-radius: 10px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s, box-shadow .15s; }
+    .dl-card:hover { border-color: #2e6da4; box-shadow: 0 2px 8px rgba(46,109,164,.12); }
+    .dl-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .dl-info { flex: 1; min-width: 0; }
+    .dl-info strong { display: block; font-size: .88rem; color: #1a3a5c; margin-bottom: 2px; }
+    .dl-info span { font-size: .78rem; color: #5a7a9a; }
+    .dl-info code { font-size: .76rem; background: #e8f2fc; border-radius: 3px; padding: 1px 4px; }
+    .dl-badge { flex-shrink: 0; font-size: .68rem; font-weight: 700; letter-spacing: .05em; background: #2e6da4; color: white; border-radius: 5px; padding: 3px 8px; }
     #dark-toggle{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:5px 11px;font-size:.95rem;cursor:pointer;color:white;transition:background .18s;flex-shrink:0;margin-left:6px;}
     #dark-toggle:hover{background:rgba(255,255,255,.26);}
     html.dark body{background:#0e1a28;color:#c8d8e8;}
@@ -213,6 +224,7 @@
     html.dark .file-card-left{background:#060f1a;}html.dark .file-card-right{background:#162234;}
     html.dark .file-card-right h4{color:#c8d8e8;}html.dark .file-card-right p{color:#8aaac8;}
     html.dark .faq-item{border-color:#1e3a52;}html.dark .faq-q{color:#c8d8e8;}html.dark .faq-a{color:#8aaac8;}
+    html.dark .dl-card{background:#0d2035;border-color:#1e3a52;color:#c8d8e8;}html.dark .dl-card:hover{border-color:#4a9ad4;}html.dark .dl-info strong{color:#c8d8e8;}html.dark .dl-info span{color:#6a8aa8;}html.dark .dl-badge{background:#1e5080;}
     html.dark .arch-detail{background:#111e2d;border-color:#1e3a52;color:#8aaac8;}
     html.dark .arch-content h4{color:#c8d8e8;}html.dark .arch-content p{color:#6a8aaa;}
     html.dark ::-webkit-scrollbar-track{background:#0e1a28;}html.dark ::-webkit-scrollbar-thumb{background:#1e3a52;}
@@ -286,6 +298,8 @@
     <a class="toc-link toc-sub" href="#arch-prompt">Prompt Structure</a>
     <hr class="toc-divider">
     <a class="toc-link" href="#faq">❓ FAQ</a>
+    <hr class="toc-divider">
+    <a class="toc-link" href="#downloads">📥 Downloads</a>
   </aside>
 
   <!-- Main -->
@@ -1304,6 +1318,66 @@
 
       </div><!-- /faq-list -->
     </div><!-- /faq -->
+
+    <!-- ── Downloads ──────────────────────────────────────────── -->
+    <div class="section" id="downloads">
+      <div class="section-header">
+        <span class="section-icon">📥</span>
+        <h2>Downloads</h2>
+        <span class="page-badge">Project Files</span>
+      </div>
+
+      <p>All key project documents are available for direct download below.</p>
+
+      <div class="dl-grid">
+
+        <a class="dl-card" href="/static/docs/mid_term_assignment.pdf" target="_blank" download>
+          <span class="dl-icon">📋</span>
+          <div class="dl-info">
+            <strong>Mid-Term Assignment</strong>
+            <span>Original assignment specification (PDF)</span>
+          </div>
+          <span class="dl-badge">PDF</span>
+        </a>
+
+        <a class="dl-card" href="/static/docs/report.pdf" target="_blank" download>
+          <span class="dl-icon">📄</span>
+          <div class="dl-info">
+            <strong>Project Report</strong>
+            <span>Full written report with methodology &amp; results (PDF)</span>
+          </div>
+          <span class="dl-badge">PDF</span>
+        </a>
+
+        <a class="dl-card" href="/static/docs/README.md" target="_blank" download>
+          <span class="dl-icon">📖</span>
+          <div class="dl-info">
+            <strong>README</strong>
+            <span>Quick-start guide, architecture overview &amp; API reference</span>
+          </div>
+          <span class="dl-badge">MD</span>
+        </a>
+
+        <a class="dl-card" href="/static/docs/MANIFEST.md" target="_blank" download>
+          <span class="dl-icon">📚</span>
+          <div class="dl-info">
+            <strong>Corpus Manifest</strong>
+            <span>Dataset description, sources, licensing &amp; question types</span>
+          </div>
+          <span class="dl-badge">MD</span>
+        </a>
+
+        <a class="dl-card" href="/static/docs/requirements.txt" target="_blank" download>
+          <span class="dl-icon">📦</span>
+          <div class="dl-info">
+            <strong>requirements.txt</strong>
+            <span>Python dependencies — install with <code>pip install -r requirements.txt</code></span>
+          </div>
+          <span class="dl-badge">TXT</span>
+        </a>
+
+      </div>
+    </div><!-- /downloads -->
 
   </main>
 </div>
