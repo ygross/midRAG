@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Help — Pediatric RAG Interface</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Arial, sans-serif; background: #f0f4f8; color: #1a2a3a; min-height: 100vh; }
+
+    header { background: linear-gradient(135deg, #1a3a5c 0%, #2e6da4 100%); color: white; padding: 16px 28px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    header .logo { font-size: 1.8rem; line-height: 1; }
+    header h1    { font-size: 1.25rem; font-weight: 700; }
+    header p     { font-size: .75rem; opacity: .75; margin-top: 2px; }
+    .header-badge { margin-left: auto; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: 4px 14px; font-size: .72rem; white-space: nowrap; }
+    nav { display: flex; gap: 6px; margin-left: 12px; }
+    nav a { color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; padding: 5px 14px; font-size: .8rem; text-decoration: none; background: rgba(255,255,255,.08); transition: background .15s; }
+    nav a:hover  { background: rgba(255,255,255,.18); color: white; }
+    nav a.active { background: rgba(255,255,255,.25); color: white; font-weight: 600; border-color: rgba(255,255,255,.4); }
+
+    /* Layout */
+    .layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 72px); }
+
+    /* Sidebar TOC */
+    aside { background: white; border-right: 1px solid #d8e4f0; padding: 24px 16px; position: sticky; top: 0; height: calc(100vh - 72px); overflow-y: auto; }
+    aside h2 { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #5a7a9a; margin-bottom: 10px; }
+    .toc-link { display: block; padding: 6px 10px; border-radius: 7px; font-size: .82rem; color: #1a3a5c; text-decoration: none; border-left: 2px solid transparent; margin-bottom: 2px; transition: all .15s; }
+    .toc-link:hover  { background: #f0f6ff; border-left-color: #2e6da4; }
+    .toc-link.active { background: #e8f2fc; border-left-color: #2e6da4; font-weight: 600; color: #2e6da4; }
+    .toc-sub { padding-left: 18px; font-size: .78rem; color: #5a7a9a; }
+    .toc-divider { border: none; border-top: 1px solid #f0f4f8; margin: 10px 0; }
+
+    /* Main content */
+    main { padding: 36px 48px; max-width: 860px; }
+
+    /* Page intro */
+    .page-intro { margin-bottom: 36px; }
+    .page-intro h1 { font-size: 1.7rem; font-weight: 700; color: #1a3a5c; margin-bottom: 8px; }
+    .page-intro p  { font-size: .95rem; color: #4a6a8a; line-height: 1.7; max-width: 620px; }
+
+    /* Section */
+    .section { margin-bottom: 48px; scroll-margin-top: 24px; }
+    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 2px solid #e8f2fc; }
+    .section-icon { font-size: 1.6rem; line-height: 1; }
+    .section-header h2 { font-size: 1.2rem; font-weight: 700; color: #1a3a5c; }
+    .section-header .page-badge { font-size: .72rem; background: #e8f2fc; color: #2e6da4; border-radius: 20px; padding: 3px 10px; font-weight: 600; white-space: nowrap; }
+
+    p { font-size: .9rem; line-height: 1.75; color: #2a3a4a; margin-bottom: 12px; }
+
+    /* Step list */
+    .steps { display: flex; flex-direction: column; gap: 14px; margin: 16px 0; }
+    .step { display: flex; gap: 14px; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #2e6da4; color: white; font-size: .78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+    .step-body { flex: 1; }
+    .step-body strong { display: block; font-size: .88rem; color: #1a2a3a; margin-bottom: 3px; }
+    .step-body span   { font-size: .83rem; color: #4a6a8a; line-height: 1.6; }
+
+    /* Feature cards */
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+    .feature-card { background: #f7fafd; border: 1px solid #d8e4f0; border-radius: 10px; padding: 14px 16px; }
+    .feature-card h4 { font-size: .82rem; font-weight: 700; color: #1a3a5c; margin-bottom: 6px; }
+    .feature-card p  { font-size: .78rem; color: #4a6a8a; line-height: 1.6; margin: 0; }
+
+    /* Tips / warnings */
+    .tip { background: #e6f4ea; border-left: 4px solid #1e7c3a; border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 14px 0; font-size: .83rem; color: #1a4a2a; line-height: 1.6; }
+    .tip strong { color: #1e7c3a; }
+    .warn { background: #fef3e8; border-left: 4px solid #c07000; border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 14px 0; font-size: .83rem; color: #5a3500; line-height: 1.6; }
+    .warn strong { color: #c07000; }
+    .info { background: #e8f2fc; border-left: 4px solid #2e6da4; border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 14px 0; font-size: .83rem; color: #1a3a5c; line-height: 1.6; }
+    .info strong { color: #2e6da4; }
+
+    /* Code / shortcuts */
+    code { background: #f0f4f8; border: 1px solid #d8e4f0; border-radius: 4px; padding: 1px 6px; font-family: "Courier New", monospace; font-size: .82rem; color: #2e6da4; }
+    kbd  { background: #1a2a3a; color: white; border-radius: 5px; padding: 2px 8px; font-size: .76rem; font-family: "Courier New", monospace; letter-spacing: .03em; }
+
+    /* Category pills reference */
+    .cat-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+    .cat-pill { display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: .78rem; font-weight: 600; }
+    .cat-pill.factual    { background: #e8f2fc; color: #1a3a5c; }
+    .cat-pill.numerical  { background: #e6f4ea; color: #1e5c2e; }
+    .cat-pill.temporal   { background: #f0e8fc; color: #4a1a7c; }
+    .cat-pill.negation   { background: #fef3e8; color: #7a4a00; }
+    .cat-pill.comparison { background: #fde8ea; color: #7c1a2a; }
+
+    /* Label colours reference */
+    .label-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+    .lbl { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: .78rem; font-weight: 600; }
+    .lbl.correct     { background: #d4edda; color: #155724; }
+    .lbl.partial     { background: #fff3cd; color: #856404; }
+    .lbl.incorrect   { background: #f8d7da; color: #721c24; }
+    .lbl.hallucinated{ background: #e2d5f8; color: #4a1a7c; }
+
+    /* Quick reference table */
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; margin: 14px 0; }
+    th { background: #f0f4f8; padding: 9px 14px; font-weight: 700; text-align: left; color: #5a7a9a; border-bottom: 2px solid #d8e4f0; }
+    td { padding: 9px 14px; border-bottom: 1px solid #f0f4f8; vertical-align: top; line-height: 1.5; }
+    tr:last-child td { border-bottom: none; }
+
+    /* Code blocks */
+    .code-block {
+      background: #0d1b2a; border: 1px solid #1e3a52; border-radius: 8px;
+      padding: 14px 18px; font-family: "Courier New", monospace; font-size: .78rem;
+      color: #8ab4cc; margin: 10px 0; overflow-x: auto; line-height: 1.9;
+    }
+    .cb-prompt { color: #2e6da4; user-select: none; }
+    .cb-cmd    { color: #ffd080; }
+    .cb-flag   { color: #7ec8e3; }
+    .cb-out    { color: #4a7a9a; }
+    .cb-ok     { color: #56d364; }
+    .cb-comment{ color: #2e6a4a; font-style: italic; }
+
+    /* File map cards */
+    .file-grid { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+    .file-card {
+      background: #f7fafd; border: 1px solid #d8e4f0; border-radius: 10px;
+      overflow: hidden; display: grid; grid-template-columns: 220px 1fr;
+    }
+    .file-card-left {
+      background: #1a2a3a; padding: 14px 16px; display: flex;
+      flex-direction: column; gap: 4px;
+    }
+    .file-name  { font-family: "Courier New", monospace; font-size: .82rem; color: #ffd080; font-weight: 700; }
+    .file-path  { font-family: "Courier New", monospace; font-size: .68rem; color: #3a6a8a; }
+    .file-badge {
+      display: inline-block; margin-top: 6px; background: #1e3e5c; color: #5abedc;
+      border-radius: 10px; padding: 2px 9px; font-size: .64rem; font-weight: 700;
+      letter-spacing: .06em; width: fit-content;
+    }
+    .file-card-right { padding: 12px 16px; }
+    .file-card-right h4 { font-size: .82rem; font-weight: 700; color: #1a3a5c; margin-bottom: 5px; }
+    .file-card-right p  { font-size: .78rem; color: #4a6a8a; line-height: 1.6; margin: 0 0 6px; }
+    .file-api   { font-family: "Courier New", monospace; font-size: .72rem; color: #2e6da4; background: #f0f6ff; border-radius: 4px; padding: 2px 7px; display: inline-block; margin: 2px 2px 0 0; }
+
+    /* File-tree diagram */
+    .file-tree {
+      background: #0d1b2a; border: 1px solid #1e3a52; border-radius: 8px;
+      padding: 14px 18px; font-family: "Courier New", monospace; font-size: .78rem;
+      color: #5a8aaa; line-height: 2; margin: 14px 0;
+    }
+    .ft-dir  { color: #7ec8e3; }
+    .ft-file { color: #a0d0e8; }
+    .ft-note { color: #2e5a7a; }
+
+    /* Nav overview cards */
+    .nav-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 18px 0; }
+    .nav-card { background: white; border: 1px solid #d8e4f0; border-radius: 10px; padding: 14px 16px; text-decoration: none; color: inherit; transition: box-shadow .15s, border-color .15s; display: block; }
+    .nav-card:hover { box-shadow: 0 3px 14px rgba(46,109,164,.15); border-color: #2e6da4; }
+    .nav-card .icon { font-size: 1.4rem; margin-bottom: 6px; }
+    .nav-card h4 { font-size: .84rem; font-weight: 700; color: #1a3a5c; margin-bottom: 4px; }
+    .nav-card p  { font-size: .75rem; color: #5a7a9a; line-height: 1.5; margin: 0; }
+    .nav-card .url { font-size: .7rem; font-family: "Courier New", monospace; color: #2e6da4; margin-top: 6px; display: block; }
+
+    /* ── Troubleshooting blocks ──────────────────────────────────────────── */
+    .ts-block { background: white; border: 1px solid #d8e4f0; border-radius: 10px; margin-bottom: 18px; overflow: hidden; }
+    .ts-header { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid #f0f4f8; background: #f7fafd; }
+    .ts-badge { font-size: .66rem; font-weight: 700; letter-spacing: .06em; padding: 2px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
+    .ts-badge.error { background: #f8d7da; color: #721c24; }
+    .ts-badge.warn  { background: #fff3cd; color: #856404; }
+    .ts-badge.hint  { background: #e8f2fc; color: #2e6da4; }
+    .ts-header h4 { font-size: .83rem; font-weight: 700; color: #1a3a5c; font-family: "Courier New", monospace; margin: 0; }
+    .ts-body { padding: 14px 18px; }
+    .ts-body p { margin-bottom: 8px; font-size: .85rem; }
+    .ts-body p:last-child { margin-bottom: 0; }
+    .ts-cause { font-size: .78rem; color: #8a3a00; background: #fff7ee; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+    .ts-fix   { font-size: .78rem; color: #1a4a2a; background: #eef8f1; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+    .ts-cause strong { color: #c07000; }
+    .ts-fix   strong { color: #1e7c3a; }
+
+    /* ── Architecture pipeline ──────────────────────────────────────────── */
+    .arch-flow { display: flex; flex-direction: column; gap: 0; margin: 22px 0; }
+    .arch-step { display: grid; grid-template-columns: 40px 1fr; }
+    .arch-dot  { display: flex; flex-direction: column; align-items: center; }
+    .arch-circle { width: 36px; height: 36px; border-radius: 50%; background: #2e6da4; color: white; font-size: .82rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(46,109,164,.3); }
+    .arch-line { flex: 1; width: 2px; background: linear-gradient(#d8e4f0, #d8e4f0); margin: 4px auto; min-height: 18px; }
+    .arch-content { padding: 4px 0 22px 14px; }
+    .arch-content h4 { font-size: .88rem; font-weight: 700; color: #1a3a5c; margin-bottom: 4px; }
+    .arch-content p  { font-size: .8rem; color: #4a6a8a; line-height: 1.65; margin: 0 0 4px; }
+    .arch-detail { background: #f7fafd; border: 1px solid #e0eaf4; border-radius: 6px; padding: 8px 12px; font-size: .78rem; color: #3a5a7a; line-height: 1.7; margin-top: 6px; }
+    .arch-detail code { font-size: .75rem; }
+
+    /* ── FAQ ────────────────────────────────────────────────────────────── */
+    .faq-list { display: flex; flex-direction: column; gap: 0; margin: 12px 0; }
+    .faq-item { border-bottom: 1px solid #f0f4f8; padding: 16px 0; }
+    .faq-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .faq-q { font-size: .88rem; font-weight: 700; color: #1a3a5c; margin-bottom: 8px; display: flex; gap: 10px; align-items: flex-start; }
+    .faq-q-badge { background: #2e6da4; color: white; border-radius: 50%; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .faq-a { font-size: .84rem; color: #3a5a7a; line-height: 1.75; padding-left: 32px; }
+    #dark-toggle{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:5px 11px;font-size:.95rem;cursor:pointer;color:white;transition:background .18s;flex-shrink:0;margin-left:6px;}
+    #dark-toggle:hover{background:rgba(255,255,255,.26);}
+    html.dark body{background:#0e1a28;color:#c8d8e8;}
+    html.dark header{background:linear-gradient(135deg,#0d2236,#1a4a7a);}
+    html.dark aside,html.dark .controls-bar{background:#111e2d;border-color:#1e3a52;}
+    html.dark .feature-card,html.dark .nav-card,html.dark .ts-block,html.dark .file-card{background:#162234;border-color:#1e3a52;}
+    html.dark h1,html.dark h2,html.dark h3,html.dark h4{color:#c8d8e8;}
+    html.dark p,html.dark li{color:#a0b8cc;}
+    html.dark label,html.dark aside h2{color:#6a8aaa;}
+    html.dark th{background:#111e2d!important;color:#6a8aaa!important;border-color:#1e3a52!important;}
+    html.dark td{border-color:#1e3a52!important;color:#a0b8cc;}
+    html.dark hr,html.dark .toc-divider,html.dark .section-header{border-color:#1e3a52;}
+    html.dark code{background:#0d1b2a!important;border-color:#1e3a52!important;color:#5abedc!important;}
+    html.dark kbd{background:#0d1b2a;color:#c8d8e8;border:1px solid #1e3a52;}
+    html.dark .tip{background:#0a2218!important;border-color:#1e7c3a!important;color:#6ad898!important;}
+    html.dark .warn{background:#281800!important;border-color:#c07000!important;color:#e0a040!important;}
+    html.dark .info{background:#0a1e30!important;border-color:#2e6da4!important;color:#7ab8dc!important;}
+    html.dark .tip strong{color:#4dc878!important;}html.dark .warn strong{color:#e8a040!important;}html.dark .info strong{color:#5abedc!important;}
+    html.dark .toc-link{color:#8aaac8;}
+    html.dark .toc-link:hover{background:#1a2e40;border-left-color:#5abedc;color:#c8d8e8;}
+    html.dark .toc-link.active{background:#0d2236;border-left-color:#5abedc;color:#5abedc;}
+    html.dark .section-header .page-badge{background:#0d2236;color:#5abedc;}
+    html.dark .ts-header{background:#111e2d;border-color:#1e3a52;}html.dark .ts-header h4{color:#a0b8cc;}
+    html.dark .ts-cause{background:#281800;color:#e0a040;}html.dark .ts-fix{background:#0a2218;color:#6ad898;}
+    html.dark .nav-card h4{color:#c8d8e8;}html.dark .nav-card p{color:#6a8aaa;}html.dark .nav-card:hover{border-color:#5abedc!important;}
+    html.dark .file-card-left{background:#060f1a;}html.dark .file-card-right{background:#162234;}
+    html.dark .file-card-right h4{color:#c8d8e8;}html.dark .file-card-right p{color:#8aaac8;}
+    html.dark .faq-item{border-color:#1e3a52;}html.dark .faq-q{color:#c8d8e8;}html.dark .faq-a{color:#8aaac8;}
+    html.dark .arch-detail{background:#111e2d;border-color:#1e3a52;color:#8aaac8;}
+    html.dark .arch-content h4{color:#c8d8e8;}html.dark .arch-content p{color:#6a8aaa;}
+    html.dark ::-webkit-scrollbar-track{background:#0e1a28;}html.dark ::-webkit-scrollbar-thumb{background:#1e3a52;}
+  </style>
+  <script src="/static/darkmode.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="logo">🩺</div>
+  <div>
+    <h1>Pediatric RAG — User Guide</h1>
+    <p>How to use every page of the interface</p>
+  </div>
+  <div class="header-badge">Mid-Course Assignment</div>
+  <nav>
+    <a href="/build">1. Rebuild</a>
+    <a href="/">2. Demo</a>
+    <a href="/eval">3. Eval</a>
+    <a href="/ablation">4. Ablation</a>
+    <a href="/goldset">5. Gold Set</a>
+    <a href="/help" class="active">Help</a>
+    <a href="/qa">Q&amp;A</a>
+  </nav>
+  <button id="dark-toggle" onclick="toggleDark()" title="Switch to dark mode">🌙</button>
+</header>
+
+<div class="layout">
+
+  <!-- Table of Contents -->
+  <aside>
+    <h2>Contents</h2>
+    <a class="toc-link" href="#overview">System Overview</a>
+    <hr class="toc-divider">
+    <a class="toc-link" href="#build">1. Rebuild Index</a>
+    <hr class="toc-divider">
+    <a class="toc-link" href="#demo">2. Demo Page</a>
+    <a class="toc-link toc-sub" href="#demo-ask">Asking a Question</a>
+    <a class="toc-link toc-sub" href="#demo-controls">Controls</a>
+    <a class="toc-link toc-sub" href="#demo-results">Reading Results</a>
+    <a class="toc-link toc-sub" href="#demo-chunk">Chunk Popup</a>
+    <a class="toc-link toc-sub" href="#demo-label">Labeling Answers</a>
+    <hr class="toc-divider">
+    <a class="toc-link" href="#eval">3. Evaluation Dashboard</a>
+    <a class="toc-link toc-sub" href="#eval-run">Running Evaluation</a>
+    <a class="toc-link toc-sub" href="#eval-metrics">Understanding Metrics</a>
+    <a class="toc-link toc-sub" href="#eval-manual">Manual Labeling</a>
+    <hr class="toc-divider">
+    <a class="toc-link" href="#ablation">4. Ablation Study</a>
+    <hr class="toc-divider">
+    <a class="toc-link" href="#goldset">5. Gold Set Editor</a>
+    <hr class="toc-divider">
+    <hr class="toc-divider">
+    <a class="toc-link" href="#codefiles">6. Python Files</a>
+    <a class="toc-link toc-sub" href="#codefiles-map">File Map</a>
+    <a class="toc-link toc-sub" href="#codefiles-each">Each File Explained</a>
+    <a class="toc-link toc-sub" href="#codefiles-cli">Manual CLI Runs</a>
+    <hr class="toc-divider">
+    <a class="toc-link" href="#quickref">Quick Reference</a>
+    <hr class="toc-divider">
+    <a class="toc-link" href="#troubleshoot">🔧 Troubleshooting</a>
+    <a class="toc-link toc-sub" href="#ts-errno22">[Errno 22] Symlink</a>
+    <a class="toc-link toc-sub" href="#ts-nokey">API Key Missing</a>
+    <a class="toc-link toc-sub" href="#ts-noindex">Index Not Found</a>
+    <a class="toc-link toc-sub" href="#ts-hf">HF Model Issues</a>
+    <a class="toc-link toc-sub" href="#ts-500">Ask / 500 Errors</a>
+    <a class="toc-link toc-sub" href="#ts-notfound">Answer "Not Found"</a>
+    <hr class="toc-divider">
+    <a class="toc-link" href="#architecture">🏗 Architecture</a>
+    <a class="toc-link toc-sub" href="#arch-flow">5-Step Pipeline</a>
+    <a class="toc-link toc-sub" href="#arch-prompt">Prompt Structure</a>
+    <hr class="toc-divider">
+    <a class="toc-link" href="#faq">❓ FAQ</a>
+  </aside>
+
+  <!-- Main -->
+  <main>
+
+    <!-- Intro -->
+    <div class="page-intro">
+      <h1>Interface User Guide</h1>
+      <p>This guide explains every page of the Pediatric RAG web interface — from asking your first question to running a full ablation study. The system retrieves passages from two pediatric textbooks and uses an LLM to generate grounded answers.</p>
+    </div>
+
+    <!-- Overview -->
+    <div class="section" id="overview">
+      <div class="section-header">
+        <span class="section-icon">🗺</span>
+        <h2>System Overview</h2>
+      </div>
+
+      <p>The interface has <strong>five working pages</strong> plus this help page. Use the navigation bar at the top to switch between them.</p>
+
+      <div class="nav-cards">
+        <a class="nav-card" href="/build">
+          <div class="icon">🔨</div>
+          <h4>1. Rebuild Index</h4>
+          <p>Re-chunk the PDFs and rebuild the vector index with custom parameters.</p>
+          <span class="url">/build</span>
+        </a>
+        <a class="nav-card" href="/">
+          <div class="icon">💬</div>
+          <h4>2. Demo</h4>
+          <p>Ask clinical questions and see retrieved chunks + generated answers.</p>
+          <span class="url">/</span>
+        </a>
+        <a class="nav-card" href="/eval">
+          <div class="icon">📊</div>
+          <h4>3. Evaluation</h4>
+          <p>Run Hit@k and Precision@k over the gold set. Label answers manually.</p>
+          <span class="url">/eval</span>
+        </a>
+        <a class="nav-card" href="/ablation">
+          <div class="icon">🔬</div>
+          <h4>4. Ablation Study</h4>
+          <p>Compare multiple configurations side-by-side. Results persist across sessions.</p>
+          <span class="url">/ablation</span>
+        </a>
+        <a class="nav-card" href="/goldset">
+          <div class="icon">📋</div>
+          <h4>5. Gold Set Editor</h4>
+          <p>Add, edit, or delete evaluation questions. Filter by category.</p>
+          <span class="url">/goldset</span>
+        </a>
+      </div>
+
+      <div class="info">
+        <strong>How RAG works:</strong> When you ask a question, the system (1) embeds it with <code>all-MiniLM-L6-v2</code>, (2) finds the top-k most similar chunks via cosine similarity, (3) passes those chunks as context to the LLM, and (4) returns a grounded answer with source citations.
+      </div>
+    </div>
+
+    <!-- Rebuild -->
+    <div class="section" id="build">
+      <div class="section-header">
+        <span class="section-icon">🔨</span>
+        <h2>Rebuild Index</h2>
+        <span class="page-badge">Step 1 · /build</span>
+      </div>
+
+      <p>This page re-chunks the source PDFs and rebuilds the vector index. Use it when you want to experiment with different chunk sizes or strategies.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Choose a strategy</strong>
+            <span><strong>Both</strong> builds fixed-size and paragraph indexes simultaneously. <strong>Fixed</strong> or <strong>Paragraph</strong> builds only one. Building both takes about twice as long.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Set chunk size and overlap</strong>
+            <span>Drag the sliders or type values. <strong>Chunk size</strong>: number of characters per chunk (50–2000). <strong>Overlap</strong>: characters shared between adjacent chunks (0 to chunk size − 1). The live estimate shows the expected chunk count.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Use a preset (optional)</strong>
+            <span>Click Default (400/50), Small (300/0), Large (700/100), or Paragraph Only for common configurations.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Click Rebuild Index</strong>
+            <span>A live log terminal streams output from the build script. Green lines = progress. Red lines = errors. The animated progress bar fills as chunks are processed. The button re-enables when the build finishes.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="warn"><strong>Note:</strong> Rebuilding replaces the current index. The Demo page's chunk popup cache is cleared automatically so it reflects the new chunks.</div>
+    </div>
+
+    <!-- Demo -->
+    <div class="section" id="demo">
+      <div class="section-header">
+        <span class="section-icon">💬</span>
+        <h2>Demo Page</h2>
+        <span class="page-badge">Step 2 · / (root)</span>
+      </div>
+
+      <p>The Demo page is the main interface for testing the RAG pipeline interactively. Ask any clinical question related to pediatrics and see how the system retrieves and synthesises an answer.</p>
+
+      <div class="section" id="demo-ask" style="margin-bottom:24px;">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin-bottom:12px;">Asking a Question</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Type your question</strong>
+              <span>Click the text field labelled "Ask a clinical question" and type any question. Press <kbd>Enter</kbd> or click <strong>Ask ›</strong> to submit.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Or use a sample question</strong>
+              <span>Click any button in the <em>Sample Questions</em> sidebar. The question is filled in and submitted automatically.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Wait for the answer</strong>
+              <span>The button shows a spinner. Cloud models (Claude) take 2–10 s. Local HuggingFace models may take longer on first load (model download).</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="demo-controls" style="margin-bottom:24px;">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin-bottom:12px;">Controls Bar</h3>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <h4>Model</h4>
+            <p>Choose the LLM that generates the answer. <strong>Cloud models</strong> (Haiku, Sonnet, Opus) need the Anthropic API key. <strong>Local models</strong> (Flan-T5, Zephyr) run on your machine — first run downloads the weights.</p>
+          </div>
+          <div class="feature-card">
+            <h4>Retrieval Strategy</h4>
+            <p><strong>Fixed-size</strong> splits text into fixed-length chunks (default 400 chars). <strong>Paragraph</strong> splits on natural paragraph boundaries. Fixed-size is generally more consistent; paragraph better preserves meaning.</p>
+          </div>
+          <div class="feature-card">
+            <h4>Top-k Chunks</h4>
+            <p>How many chunks to retrieve and pass to the LLM. Higher k = more context but also more noise. Default is 5. Range: 1–10.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="demo-results" style="margin-bottom:24px;">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin-bottom:12px;">Reading the Results</h3>
+        <table>
+          <tr><th>Section</th><th>What it shows</th></tr>
+          <tr><td><strong>Meta badges</strong></td><td>Model used, strategy, latency, number of sources cited.</td></tr>
+          <tr><td><strong>Generated Answer</strong></td><td>The LLM's answer grounded in the retrieved chunks. Bold text = emphasis. <code>[Source: …]</code> at the end cites the chunk IDs used.</td></tr>
+          <tr><td><strong>Cited Sources</strong></td><td>Document prefixes referenced by the answer (e.g. <code>aap</code>, <code>kliegman</code>).</td></tr>
+          <tr><td><strong>Retrieved Chunks</strong></td><td>All k chunks with their cosine similarity score shown as a bar. Higher bar = more relevant. Click the chunk ID to view the full text.</td></tr>
+        </table>
+      </div>
+
+      <div class="section" id="demo-chunk" style="margin-bottom:24px;">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin-bottom:12px;">Chunk Text Popup</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Click any chunk ID</strong>
+              <span>In the <em>Retrieved Chunks</em> section, each ID (e.g. <code>aap_p0248_fixed_000</code>) is underlined and clickable.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>A modal opens</strong>
+              <span>Shows the full raw text of that chunk, the source document, page number, and chunk strategy.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Close the modal</strong>
+              <span>Click the <strong>✕</strong> button, click outside the modal, or press <kbd>Esc</kbd>.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="demo-label" style="margin-bottom:0;">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin-bottom:12px;">Labeling an Answer</h3>
+        <p>Below the generated answer is a <em>Label this answer</em> bar. Use it to record your human judgement:</p>
+        <div class="label-row">
+          <span class="lbl correct">✓ Correct</span>
+          <span class="lbl partial">~ Partial</span>
+          <span class="lbl incorrect">✗ Incorrect</span>
+          <span class="lbl hallucinated">⚠ Hallucinated</span>
+        </div>
+        <p>Labels are saved to <code>eval/manual_labels.json</code> and also visible in the <a href="/eval">Evaluation page</a> under <em>Saved Manual Labels</em>.</p>
+        <div class="tip"><strong>Tip:</strong> Use <strong>Hallucinated</strong> when the answer states something that is not supported by any of the retrieved chunks.</div>
+      </div>
+    </div>
+
+    <!-- Evaluation -->
+    <div class="section" id="eval">
+      <div class="section-header">
+        <span class="section-icon">📊</span>
+        <h2>Evaluation Dashboard</h2>
+        <span class="page-badge">Step 3 · /eval</span>
+      </div>
+
+      <p>Run a systematic evaluation of the RAG pipeline over the gold set (50 curated questions). Results stream in live as each question is processed.</p>
+
+      <div class="section" id="eval-run" style="margin-bottom:24px;">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin-bottom:12px;">Running an Evaluation</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Set parameters</strong>
+              <span>Choose strategy (Fixed / Paragraph), Top-k (1–10), number of questions to evaluate (10 for a quick test, 52 for the full set), and the model.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Click ▶ Run Evaluation</strong>
+              <span>A progress bar appears and per-question rows are added to the table in real time as answers come in.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Review the summary</strong>
+              <span>When all questions finish, the summary cards at the top fill with overall Hit@k, Precision@k, and average latency. The per-category table shows breakdown by question type.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="eval-metrics" style="margin-bottom:24px;">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin-bottom:12px;">Understanding the Metrics</h3>
+        <table>
+          <tr><th>Metric</th><th>Definition</th><th>Good value</th></tr>
+          <tr>
+            <td><strong>Hit@k</strong></td>
+            <td>Fraction of questions where at least one of the top-k retrieved chunks comes from the correct source (exact match or within ±2 pages).</td>
+            <td>&gt; 75%</td>
+          </tr>
+          <tr>
+            <td><strong>Precision@k</strong></td>
+            <td>Average fraction of retrieved chunks that come from the correct source document.</td>
+            <td>&gt; 70%</td>
+          </tr>
+          <tr>
+            <td><strong>Avg Latency</strong></td>
+            <td>Mean time (seconds) from question submission to answer received, per question.</td>
+            <td>&lt; 5 s (cloud)</td>
+          </tr>
+        </table>
+
+        <p>Question categories and their colour coding:</p>
+        <div class="cat-row">
+          <span class="cat-pill factual">Factual (20)</span>
+          <span class="cat-pill numerical">Numerical (10)</span>
+          <span class="cat-pill temporal">Temporal (5)</span>
+          <span class="cat-pill negation">Negation (8)</span>
+          <span class="cat-pill comparison">Comparison (7)</span>
+        </div>
+      </div>
+
+      <div class="section" id="eval-manual" style="margin-bottom:0;">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin-bottom:12px;">Manual Labeling</h3>
+        <p>Every row in the results table has label buttons. Click a button to save your judgement for that question:</p>
+        <div class="label-row">
+          <span class="lbl correct">✓ Correct</span>
+          <span class="lbl partial">~ Partial</span>
+          <span class="lbl incorrect">✗ Incorrect</span>
+          <span class="lbl hallucinated">⚠ Hallucinated</span>
+        </div>
+        <p>Labels are saved immediately to <code>eval/manual_labels.json</code>. They appear in the <em>Saved Manual Labels</em> table at the bottom of this page and persist across sessions.</p>
+        <div class="tip"><strong>Tip:</strong> You can re-run evaluation with different parameters and keep labeling — all previous labels are loaded automatically from disk.</div>
+      </div>
+    </div>
+
+    <!-- Ablation -->
+    <div class="section" id="ablation">
+      <div class="section-header">
+        <span class="section-icon">🔬</span>
+        <h2>Ablation Study</h2>
+        <span class="page-badge">Step 4 · /ablation</span>
+      </div>
+
+      <p>Compare different retrieval configurations by running them against the gold set and recording results in a persistent table. Unlike the Evaluation page (which streams), each ablation experiment runs synchronously and saves its result to <code>eval/ablation_results.json</code>.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Fill in the experiment form</strong>
+            <span>Give the experiment a <strong>Label</strong> (e.g. "Fixed k=5 baseline"), choose Strategy, Top-k, number of questions, and model. Add optional notes to explain what you're testing.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Or click a preset</strong>
+            <span>Preset buttons at the bottom of the form fill in common configurations: Fixed k=5, Fixed k=3, Fixed k=10, Paragraph k=5, Paragraph k=3.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Click ▶ Run</strong>
+            <span>A spinner appears while the experiment runs. When finished, the result row is appended to the table. The <strong>best Hit@k</strong> row is highlighted in green with a BEST badge.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Delete rows you don't need</strong>
+            <span>Click the <strong>✕</strong> button on any row to remove it from the table and from disk.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info"><strong>Tip:</strong> Start with 10–20 questions for quick comparisons, then run the best-performing configuration on all 52 questions for the final assignment report.</div>
+    </div>
+
+    <!-- Gold Set -->
+    <div class="section" id="goldset">
+      <div class="section-header">
+        <span class="section-icon">📋</span>
+        <h2>Gold Set Editor</h2>
+        <span class="page-badge">Step 5 · /goldset</span>
+      </div>
+
+      <p>The gold set is the ground-truth evaluation dataset: 50 questions with reference answers, expected chunk IDs, and category labels. This page lets you view, add, edit, and delete questions.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Filter by category</strong>
+            <span>Click a category button in the toolbar to show only questions of that type. Click <strong>All</strong> to reset.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Add a new question</strong>
+            <span>Click <strong>+ Add Question</strong> to open the edit panel. Fill in the question, reference answer, category, and (optionally) must-cite chunk IDs separated by commas. Click <strong>Save</strong>.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Edit an existing question</strong>
+            <span>Click <strong>✏ Edit</strong> on any row. The edit panel opens pre-filled. Change what you need and click <strong>Save</strong>. Changes are saved immediately to <code>eval/gold_set.jsonl</code>.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Delete a question</strong>
+            <span>Click <strong>✕ Del</strong> on a row and confirm the prompt. The question is removed from the file permanently.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="warn"><strong>Caution:</strong> Deleting questions from the gold set reduces the evaluation coverage. It is better to edit an incorrect question than to delete it.</div>
+
+      <p style="margin-top:14px;"><strong>Must-cite chunk IDs</strong> are the chunk IDs that a correct retrieval should include. Format: <code>aap_p0248_fixed_000, kliegman_p0205_fixed_003</code>. Used by Hit@k and Precision@k to determine correctness.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Python Files & Manual CLI
+         ═══════════════════════════════════════════════════════ -->
+    <div class="section" id="codefiles">
+      <div class="section-header">
+        <span class="section-icon">🐍</span>
+        <h2>Python Files &amp; Manual CLI</h2>
+        <span class="page-badge">Code Reference</span>
+      </div>
+
+      <p>The project has <strong>5 Python source files</strong> plus the Flask server. Each one owns exactly one responsibility in the pipeline. Understanding which file does what lets you debug, extend, or run any stage independently from the command line.</p>
+
+      <!-- File tree -->
+      <div id="codefiles-map">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin:20px 0 10px;">Project Layout</h3>
+        <div class="file-tree">
+<span class="ft-dir">בניית RAG/</span>
+├── <span class="ft-file">app.py</span>               <span class="ft-note">← Flask web server — entry point</span>
+├── <span class="ft-file">.env</span>                 <span class="ft-note">← ANTHROPIC_API_KEY (never commit)</span>
+├── <span class="ft-dir">src/</span>
+│   ├── <span class="ft-file">build_index.py</span>   <span class="ft-note">← Step 1: PDF → chunks → embeddings → .npy</span>
+│   ├── <span class="ft-file">retrieval.py</span>    <span class="ft-note">← Step 2: embed query → dot product → top-k</span>
+│   ├── <span class="ft-file">generation.py</span>   <span class="ft-note">← Step 3: chunks + prompt → Claude / HF model</span>
+│   ├── <span class="ft-file">rag_system.py</span>   <span class="ft-note">← Orchestrator: retrieve → generate → answer</span>
+│   └── <span class="ft-file">utils.py</span>        <span class="ft-note">← Shared helpers (logging, path utils)</span>
+├── <span class="ft-dir">data/raw/</span>            <span class="ft-note">← Source PDFs (Kliegman + AAP)</span>
+├── <span class="ft-dir">index/</span>              <span class="ft-note">← Built output: *.npy + *.json</span>
+└── <span class="ft-dir">eval/</span>               <span class="ft-note">← gold_set.jsonl, labels, ablation results</span>
+        </div>
+      </div>
+
+      <!-- Each file explained -->
+      <div id="codefiles-each">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin:24px 0 12px;">Each File Explained</h3>
+        <div class="file-grid">
+
+          <!-- app.py -->
+          <div class="file-card">
+            <div class="file-card-left">
+              <div class="file-name">app.py</div>
+              <div class="file-path">/ (root)</div>
+              <div class="file-badge">WEB SERVER</div>
+            </div>
+            <div class="file-card-right">
+              <h4>Flask web server — the only entry point you need to run</h4>
+              <p>Defines all HTTP routes (<code>/ask</code>, <code>/build/run</code>, <code>/eval/run</code>, <code>/hf/load</code>, etc.), manages background threads for SSE streaming, loads <code>.env</code>, and connects the browser to the Python pipeline.</p>
+              <p><strong>When to open this file:</strong> to add a new API route, change port, or debug an HTTP error.</p>
+              <span class="file-api">python app.py</span>
+            </div>
+          </div>
+
+          <!-- build_index.py -->
+          <div class="file-card">
+            <div class="file-card-left">
+              <div class="file-name">build_index.py</div>
+              <div class="file-path">src/</div>
+              <div class="file-badge">STEP 1 — BUILD</div>
+            </div>
+            <div class="file-card-right">
+              <h4>PDF → chunks → embeddings → saved index</h4>
+              <p>Reads both PDFs with PyMuPDF, splits text into chunks (fixed-size sliding window or paragraph-aware), encodes every chunk with <code>all-MiniLM-L6-v2</code>, L2-normalises the vectors, and saves <code>.npy</code> + <code>.json</code> to <code>index/</code>.</p>
+              <p><strong>When to run manually:</strong> when you change chunk size / overlap, add a new PDF, or the index is missing.</p>
+              <span class="file-api">--strategy fixed|paragraph|both</span>
+              <span class="file-api">--chunk-size N</span>
+              <span class="file-api">--overlap N</span>
+            </div>
+          </div>
+
+          <!-- retrieval.py -->
+          <div class="file-card">
+            <div class="file-card-left">
+              <div class="file-name">retrieval.py</div>
+              <div class="file-path">src/</div>
+              <div class="file-badge">STEP 2 — SEARCH</div>
+            </div>
+            <div class="file-card-right">
+              <h4>Query → 384-dim vector → cosine search → top-k chunks</h4>
+              <p>Loads the pre-built <code>.npy</code> index into memory (cached after first call), embeds the query with the same sentence-transformer, computes dot-product similarity against all chunk vectors, and returns the top-k results with scores and metadata.</p>
+              <p><strong>When to open this file:</strong> to change the retrieval model, add hybrid search, or debug why a question retrieves wrong chunks.</p>
+              <span class="file-api">retrieve(query, k=5, strategy='fixed')</span>
+            </div>
+          </div>
+
+          <!-- generation.py -->
+          <div class="file-card">
+            <div class="file-card-left">
+              <div class="file-name">generation.py</div>
+              <div class="file-path">src/</div>
+              <div class="file-badge">STEP 3 — GENERATE</div>
+            </div>
+            <div class="file-card-right">
+              <h4>Chunks + question → grounded LLM answer</h4>
+              <p>Formats retrieved chunks into a prompt with a strict system instruction (<em>"answer ONLY from the provided context"</em>), then calls either the Anthropic API (for Claude models) or loads a HuggingFace model locally. Also manages the HF model download cache and the <code>_hf_load_status</code> dict polled by the UI progress bar.</p>
+              <p><strong>When to open this file:</strong> to change the system prompt, add a new LLM backend, or fix model-loading errors.</p>
+              <span class="file-api">generate_answer(question, chunks, model, max_tokens)</span>
+              <span class="file-api">prefetch_hf_model(model_id)</span>
+            </div>
+          </div>
+
+          <!-- rag_system.py -->
+          <div class="file-card">
+            <div class="file-card-left">
+              <div class="file-name">rag_system.py</div>
+              <div class="file-path">src/</div>
+              <div class="file-badge">ORCHESTRATOR</div>
+            </div>
+            <div class="file-card-right">
+              <h4>The complete pipeline in one function call</h4>
+              <p>Calls <code>retrieve()</code> → <code>generate_answer()</code> → extracts cited sources → returns a structured result dict. Also times each step (<code>embed_retrieve_ms</code>, <code>generate_ms</code>) for the Pipeline Trace panel.</p>
+              <p><strong>When to use directly:</strong> quick smoke-test from terminal, or to import <code>answer()</code> into a Jupyter notebook without starting the web server.</p>
+              <span class="file-api">answer(question, k=5, strategy='fixed', model='...')</span>
+            </div>
+          </div>
+
+          <!-- utils.py -->
+          <div class="file-card">
+            <div class="file-card-left">
+              <div class="file-name">utils.py</div>
+              <div class="file-path">src/</div>
+              <div class="file-badge">HELPERS</div>
+            </div>
+            <div class="file-card-right">
+              <h4>Shared utilities used by the other modules</h4>
+              <p>Logging setup, path resolution helpers, and other shared code. You rarely need to run or edit this file directly.</p>
+            </div>
+          </div>
+
+        </div><!-- /file-grid -->
+      </div>
+
+      <!-- Manual CLI runs -->
+      <div id="codefiles-cli">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin:28px 0 12px;">Running Each Stage Manually</h3>
+        <p>Every stage can be run from the terminal without starting the web server. Open a terminal in the project root (<code>בניית RAG/</code>) and run the commands below.</p>
+
+        <!-- 0. Start server -->
+        <h4 style="font-size:.84rem;font-weight:700;color:#2e6da4;margin:20px 0 6px;">0 — Start the web server</h4>
+        <div class="code-block">
+<span class="cb-comment"># Start Flask on http://localhost:5000</span>
+<span class="cb-prompt">$ </span><span class="cb-cmd">python app.py</span>
+
+<span class="cb-ok">Starting RAG demo at http://localhost:5000</span>
+<span class="cb-ok"> * Debug mode: on  — auto-reloads on file change</span>
+        </div>
+
+        <!-- 1. Build index -->
+        <h4 style="font-size:.84rem;font-weight:700;color:#2e6da4;margin:20px 0 6px;">1 — Build / rebuild the vector index</h4>
+        <div class="code-block">
+<span class="cb-comment"># Build both strategies with default settings (400 chars, 50 overlap)</span>
+<span class="cb-prompt">$ </span><span class="cb-cmd">python src/build_index.py</span>
+
+<span class="cb-comment"># Build only fixed-size with custom chunk size</span>
+<span class="cb-prompt">$ </span><span class="cb-cmd">python src/build_index.py <span class="cb-flag">--strategy fixed --chunk-size 300 --overlap 30</span></span>
+
+<span class="cb-comment"># Build paragraph-aware index only</span>
+<span class="cb-prompt">$ </span><span class="cb-cmd">python src/build_index.py <span class="cb-flag">--strategy paragraph</span></span>
+
+<span class="cb-out">Expected output:</span>
+<span class="cb-ok">[BUILD] Loading Kliegman.pdf ... 371 pages</span>
+<span class="cb-ok">[BUILD] Loading AAP.pdf ... 785 pages</span>
+<span class="cb-ok">[BUILD] Fixed chunks: 15,357  |  Embedding batch 1/240 ...</span>
+<span class="cb-ok">[BUILD] Saved index/fixed_embeddings.npy  (15357, 384)</span>
+<span class="cb-ok">[BUILD] Done in 94s</span>
+        </div>
+
+        <!-- 2. Test retrieval -->
+        <h4 style="font-size:.84rem;font-weight:700;color:#2e6da4;margin:20px 0 6px;">2 — Test retrieval alone</h4>
+        <div class="code-block">
+<span class="cb-prompt">$ </span><span class="cb-cmd">python -c "</span>
+<span class="cb-cmd">from src.retrieval import retrieve</span>
+<span class="cb-cmd">results = retrieve('febrile seizure discharge criteria', k=3, strategy='fixed')</span>
+<span class="cb-cmd">for r in results:</span>
+<span class="cb-cmd">    print(r['chunk_id'], round(r['score'],3), r['text'][:80])</span>
+<span class="cb-cmd">"</span>
+
+<span class="cb-out">Expected output:</span>
+<span class="cb-ok">aap_p0051_fixed_000  0.891  Febrile seizures typically occur in children aged...</span>
+<span class="cb-ok">klieg_p0334_fixed_002  0.867  The discharge criteria for febrile seizure include...</span>
+<span class="cb-ok">aap_p0052_fixed_001  0.845  Parents should be counselled that simple febrile...</span>
+        </div>
+
+        <!-- 3. Test full RAG pipeline -->
+        <h4 style="font-size:.84rem;font-weight:700;color:#2e6da4;margin:20px 0 6px;">3 — Test the full RAG pipeline</h4>
+        <div class="code-block">
+<span class="cb-comment"># rag_system.py has a built-in demo when run as __main__</span>
+<span class="cb-prompt">$ </span><span class="cb-cmd">python src/rag_system.py</span>
+
+<span class="cb-out">Expected output:</span>
+<span class="cb-ok">Q: What are the discharge criteria for a child with febrile seizure?</span>
+<span class="cb-ok">A: According to the retrieved sources, discharge criteria include...</span>
+<span class="cb-ok">   [Source: aap_p0051_fixed_000, klieg_p0334_fixed_002]</span>
+<span class="cb-ok">Sources: ['aap_p0051_fixed_000', 'klieg_p0334_fixed_002']</span>
+
+<span class="cb-comment"># Or call answer() directly in Python</span>
+<span class="cb-prompt">$ </span><span class="cb-cmd">python -c "</span>
+<span class="cb-cmd">from src.rag_system import answer</span>
+<span class="cb-cmd">r = answer('What causes febrile seizures?', k=5)</span>
+<span class="cb-cmd">print(r['answer'])</span>
+<span class="cb-cmd">print('Sources:', r['sources'])</span>
+<span class="cb-cmd">print('Timings:', r['_timings'])</span>
+<span class="cb-cmd">"</span>
+        </div>
+
+        <!-- 4. Test generation only -->
+        <h4 style="font-size:.84rem;font-weight:700;color:#2e6da4;margin:20px 0 6px;">4 — Test generation alone (Claude)</h4>
+        <div class="code-block">
+<span class="cb-comment"># generation.py has a smoke test when run as __main__ (needs ANTHROPIC_API_KEY)</span>
+<span class="cb-prompt">$ </span><span class="cb-cmd">python src/generation.py</span>
+
+<span class="cb-comment"># Or call generate_answer() with fake chunks to test the prompt format</span>
+<span class="cb-prompt">$ </span><span class="cb-cmd">python -c "</span>
+<span class="cb-cmd">from src.generation import generate_answer</span>
+<span class="cb-cmd">chunks = [{'chunk_id':'test_001','text':'Febrile seizures occur in 2-5% of children.','score':0.9,'metadata':{'source':'aap','page':51}}]</span>
+<span class="cb-cmd">print(generate_answer('What is the incidence of febrile seizures?', chunks))</span>
+<span class="cb-cmd">"</span>
+        </div>
+
+        <!-- 5. Pre-download HF model -->
+        <h4 style="font-size:.84rem;font-weight:700;color:#2e6da4;margin:20px 0 6px;">5 — Pre-download a HuggingFace model</h4>
+        <div class="code-block">
+<span class="cb-comment"># Download Flan-T5 Base (~300 MB) to local HuggingFace cache</span>
+<span class="cb-prompt">$ </span><span class="cb-cmd">python -c "</span>
+<span class="cb-cmd">from src.generation import prefetch_hf_model, _hf_load_status</span>
+<span class="cb-cmd">prefetch_hf_model('google/flan-t5-base')</span>
+<span class="cb-cmd">print(_hf_load_status)</span>
+<span class="cb-cmd">"</span>
+
+<span class="cb-out">Expected output:</span>
+<span class="cb-ok">{'google/flan-t5-base': {'state': 'ready', 'progress': 100, 'detail': 'Model loaded and ready'}}</span>
+        </div>
+
+        <div class="tip" style="margin-top:16px;">
+          <strong>Tip — run order for a clean start:</strong>
+          <ol style="margin:8px 0 0 18px;font-size:.83rem;line-height:2;">
+            <li>Make sure <code>.env</code> has a valid <code>ANTHROPIC_API_KEY</code></li>
+            <li><code>python src/build_index.py</code> — builds the index (only needed once, or after adding PDFs)</li>
+            <li><code>python src/rag_system.py</code> — sanity-check: confirms retrieve + generate work end-to-end</li>
+            <li><code>python app.py</code> — starts the web server; open <code>http://localhost:5000</code></li>
+          </ol>
+        </div>
+
+        <div class="warn" style="margin-top:12px;">
+          <strong>Important:</strong> Always run from the <em>project root</em> (<code>בניית RAG/</code>), not from inside <code>src/</code>. The <code>.env</code> file and the <code>index/</code> folder are resolved relative to <code>app.py</code>'s location.
+        </div>
+      </div>
+
+    </div><!-- /codefiles section -->
+
+    <!-- Quick Reference -->
+    <div class="section" id="quickref">
+      <div class="section-header">
+        <span class="section-icon">⚡</span>
+        <h2>Quick Reference</h2>
+      </div>
+
+      <table>
+        <tr><th>Keyboard shortcut</th><th>Action</th></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Submit question (Demo page)</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Close chunk popup modal</td></tr>
+      </table>
+
+      <table style="margin-top:16px;">
+        <tr><th>File</th><th>Purpose</th></tr>
+        <tr><td><code>eval/gold_set.jsonl</code></td><td>Gold evaluation questions (one JSON object per line)</td></tr>
+        <tr><td><code>eval/manual_labels.json</code></td><td>Human labels saved from Demo and Eval pages</td></tr>
+        <tr><td><code>eval/ablation_results.json</code></td><td>Persistent ablation experiment results</td></tr>
+        <tr><td><code>index/fixed_chunks.json</code></td><td>Fixed-size chunk metadata (text + page + source)</td></tr>
+        <tr><td><code>index/paragraph_chunks.json</code></td><td>Paragraph chunk metadata</td></tr>
+        <tr><td><code>index/fixed_embeddings.npy</code></td><td>Fixed-size embedding matrix (numpy)</td></tr>
+        <tr><td><code>index/paragraph_embeddings.npy</code></td><td>Paragraph embedding matrix (numpy)</td></tr>
+        <tr><td><code>.env</code></td><td>API keys — contains <code>ANTHROPIC_API_KEY</code></td></tr>
+        <tr><td><code>runCMD.ps1</code></td><td>PowerShell script to start the server correctly</td></tr>
+      </table>
+
+      <table style="margin-top:16px;">
+        <tr><th>Chunk ID format</th><th>Meaning</th></tr>
+        <tr><td><code>aap_p0248_fixed_000</code></td><td><strong>aap</strong> = document · <strong>p0248</strong> = page 248 · <strong>fixed</strong> = strategy · <strong>000</strong> = chunk index on that page</td></tr>
+        <tr><td><code>kliegman_p0205_paragraph_003</code></td><td><strong>kliegman</strong> = document · <strong>p0205</strong> = page 205 · <strong>paragraph</strong> = strategy · <strong>003</strong> = index</td></tr>
+      </table>
+
+      <div class="tip" style="margin-top:16px;">
+        <strong>Starting the server:</strong> Always use <code>.\runCMD.ps1</code> from the project folder. It loads the API key from <code>.env</code> and starts Flask with proper UTF-8 encoding.
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         TROUBLESHOOTING
+         ═══════════════════════════════════════════════════════ -->
+    <div class="section" id="troubleshoot">
+      <div class="section-header">
+        <span class="section-icon">🔧</span>
+        <h2>Troubleshooting &amp; Common Errors</h2>
+        <span class="page-badge">Fixes</span>
+      </div>
+
+      <p>Match your error to a block below. Each entry describes the cause, how to confirm it, and the exact fix.</p>
+
+      <!-- [Errno 22] -->
+      <div class="ts-block" id="ts-errno22">
+        <div class="ts-header">
+          <span class="ts-badge error">ERROR</span>
+          <h4>[WinError 22] Invalid argument — or — [Errno 22] Invalid argument</h4>
+        </div>
+        <div class="ts-body">
+          <p>Appears in the terminal or in the UI when the HuggingFace Hub tries to create symbolic links inside <code>~/.cache/huggingface/hub/</code>. Windows blocks symlink creation unless Developer Mode is enabled.</p>
+          <div class="ts-cause"><strong>Root cause:</strong> HuggingFace Hub's default cache stores model files as blobs and creates symlinks from the snapshots folder pointing to them. Windows refuses to create symlinks without elevated privileges.</div>
+          <div class="ts-fix"><strong>Fix (already applied):</strong> The app uses <code>snapshot_download(local_dir=..., local_dir_use_symlinks=False)</code> which downloads files directly to <code>model_cache/</code> without any symlinks. <br>If you still see this error, make sure you are running the latest <code>generation.py</code> from this project — older versions used <code>hf_hub_download()</code> which hits the same issue.</div>
+          <p style="margin-top:8px;">You can also enable Windows Developer Mode (<em>Settings → System → For developers → Developer Mode</em>) to permanently allow symlinks for your account, but it is not required.</p>
+        </div>
+      </div>
+
+      <!-- API Key -->
+      <div class="ts-block" id="ts-nokey">
+        <div class="ts-header">
+          <span class="ts-badge error">ERROR</span>
+          <h4>EnvironmentError: ANTHROPIC_API_KEY environment variable is not set</h4>
+        </div>
+        <div class="ts-body">
+          <p>The <code>/ask</code> endpoint tried to call the Anthropic API but could not find the key.</p>
+          <div class="ts-cause"><strong>Root cause:</strong> The <code>.env</code> file is missing, the key name is misspelled, or the server was started without loading <code>.env</code> first.</div>
+          <div class="ts-fix">
+            <strong>Fix 1 — Use runCMD.ps1 (recommended):</strong><br>
+            Run <code>.\runCMD.ps1</code> from the project root. This script loads <code>.env</code> and starts Flask with correct encoding.<br><br>
+            <strong>Fix 2 — Create / check the .env file:</strong><br>
+            Create a file named <code>.env</code> in the project root (same folder as <code>app.py</code>) with exactly:<br>
+            <code>ANTHROPIC_API_KEY=sk-ant-api03-...</code><br>
+            No quotes, no spaces around <code>=</code>.
+          </div>
+          <div class="warn" style="margin:10px 0 0;"><strong>Never</strong> commit <code>.env</code> to git — it contains your secret API key.</div>
+        </div>
+      </div>
+
+      <!-- Index Not Found -->
+      <div class="ts-block" id="ts-noindex">
+        <div class="ts-header">
+          <span class="ts-badge error">ERROR</span>
+          <h4>FileNotFoundError: index/fixed_embeddings.npy — or — KeyError loading chunks</h4>
+        </div>
+        <div class="ts-body">
+          <p>The retrieval layer tried to load the vector index but the files do not exist yet.</p>
+          <div class="ts-cause"><strong>Root cause:</strong> <code>build_index.py</code> has never been run, or the <code>index/</code> folder was deleted.</div>
+          <div class="ts-fix">
+            <strong>Fix:</strong> Build the index from the Rebuild page (<a href="/build">/build</a>), or run from the terminal:<br>
+            <code>python src/build_index.py</code><br>
+            This creates <code>index/fixed_embeddings.npy</code>, <code>index/fixed_chunks.json</code>, and their paragraph equivalents. Takes ~90 seconds on CPU for both PDFs.
+          </div>
+          <p style="margin-top:8px;">Also verify the two PDFs are present in <code>data/raw/</code> — the build script will fail silently if neither PDF is found, producing an empty index.</p>
+        </div>
+      </div>
+
+      <!-- HF Model Issues -->
+      <div class="ts-block" id="ts-hf">
+        <div class="ts-header">
+          <span class="ts-badge warn">WARN</span>
+          <h4>HuggingFace model stuck at "downloading 10%", or shows "error" badge</h4>
+        </div>
+        <div class="ts-body">
+          <p>The background download thread hit a problem. Possible causes:</p>
+          <div class="ts-cause">
+            <strong>Cause A — Slow connection:</strong> Large models (Flan-T5 Base ≈ 300 MB, Zephyr-7B ≈ 14 GB) can take 5–45 minutes on a standard connection. The progress bar shows only discrete steps (10% → 75% → 80% → 100%) — it will appear frozen between steps.<br><br>
+            <strong>Cause B — Network error during download:</strong> The HuggingFace Hub may time out or throttle. Check the server terminal for a traceback.<br><br>
+            <strong>Cause C — Transformers / accelerate not installed:</strong> Local models require <code>pip install transformers accelerate</code> (these are commented out in <code>requirements.txt</code> as optional).
+          </div>
+          <div class="ts-fix">
+            <strong>Fix A:</strong> Wait. For Flan-T5 Base, allow 5–15 minutes. Refresh the status badge periodically.<br>
+            <strong>Fix B:</strong> Click the model's Download button again — it will resume from scratch. Or pre-download in the terminal:<br>
+            <code>python -c "from src.generation import prefetch_hf_model; prefetch_hf_model('google/flan-t5-base')"</code><br>
+            <strong>Fix C:</strong> Run <code>pip install transformers accelerate huggingface_hub</code> then restart the server.
+          </div>
+        </div>
+      </div>
+
+      <!-- 500 on /ask -->
+      <div class="ts-block" id="ts-500">
+        <div class="ts-header">
+          <span class="ts-badge error">ERROR</span>
+          <h4>HTTP 500 Internal Server Error on /ask — or — answer panel shows "Error"</h4>
+        </div>
+        <div class="ts-body">
+          <p>The server raised an unhandled exception while processing a question. Check the <strong>terminal</strong> where you started Flask — the full Python traceback is printed there.</p>
+          <div class="ts-cause"><strong>Most common causes:</strong> (1) Index not built → FileNotFoundError. (2) API key missing → EnvironmentError. (3) Anthropic API rate limit or network timeout → anthropic.APIStatusError. (4) Corrupted or empty <code>.npy</code> file.</div>
+          <div class="ts-fix">
+            <strong>Step-by-step diagnosis:</strong><br>
+            1. Read the traceback in the terminal — the last line names the exception type.<br>
+            2. If FileNotFoundError → build the index (see above).<br>
+            3. If EnvironmentError → set ANTHROPIC_API_KEY (see above).<br>
+            4. If anthropic.RateLimitError → wait 60 seconds and retry.<br>
+            5. If numpy error → delete <code>index/</code> and rebuild.
+          </div>
+        </div>
+      </div>
+
+      <!-- "Not found" is not an error -->
+      <div class="ts-block" id="ts-notfound">
+        <div class="ts-header">
+          <span class="ts-badge hint">INFO</span>
+          <h4>Answer says: "The information was not found in the provided sources"</h4>
+        </div>
+        <div class="ts-body">
+          <p>This is <strong>not an error</strong> — it is the intended fallback behaviour when none of the retrieved chunks contain enough information to answer the question.</p>
+          <div class="ts-cause"><strong>Why it happens:</strong> The system prompt instructs the LLM to say this phrase instead of guessing. It triggers when: (a) the answer is genuinely not in the corpus, (b) the retrieval brought back irrelevant chunks, or (c) the question requires multi-hop reasoning across chunks that were not all retrieved.</div>
+          <div class="ts-fix">
+            <strong>Improve recall by:</strong><br>
+            • Increasing Top-k (e.g. from 5 to 8) — gives the LLM more context.<br>
+            • Switching strategies (paragraph often works better for narrative Q&amp;A; fixed for decision trees).<br>
+            • Rephrasing the question — use clinical terminology matching the books' vocabulary.<br>
+            • Checking whether the topic is in the corpus at all (Kliegman = decision trees; AAP = 50 named cases).
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /troubleshoot -->
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         ARCHITECTURE DEEP DIVE
+         ═══════════════════════════════════════════════════════ -->
+    <div class="section" id="architecture">
+      <div class="section-header">
+        <span class="section-icon">🏗</span>
+        <h2>Architecture Deep Dive</h2>
+        <span class="page-badge">How It Works</span>
+      </div>
+
+      <p>The RAG pipeline has five distinct stages. Each stage is isolated in its own Python file, which makes it easy to swap components or debug individual steps without touching the rest of the system.</p>
+
+      <!-- 5-step flow -->
+      <div id="arch-flow">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin:20px 0 6px;">The 5-Step Pipeline</h3>
+
+        <div class="arch-flow">
+
+          <div class="arch-step">
+            <div class="arch-dot">
+              <div class="arch-circle">1</div>
+              <div class="arch-line"></div>
+            </div>
+            <div class="arch-content">
+              <h4>Index Build — <code>build_index.py</code></h4>
+              <p>Run once (or whenever you change chunking parameters). Loads both PDFs with PyMuPDF, splits text into chunks using the selected strategy, encodes every chunk with the sentence-transformer, L2-normalises the vectors, and saves two files per strategy.</p>
+              <div class="arch-detail">
+                Output: <code>index/fixed_embeddings.npy</code> (shape N×384, float32) + <code>index/fixed_chunks.json</code> (list of metadata dicts).<br>
+                Chunking strategies: <strong>Fixed-size</strong> (sliding window, default 400 chars / 50 overlap) vs <strong>Paragraph-aware</strong> (split on double-newlines, 100–700 char range).<br>
+                ~15,000 chunks for both books combined; embedding takes ~90 s on CPU.
+              </div>
+            </div>
+          </div>
+
+          <div class="arch-step">
+            <div class="arch-dot">
+              <div class="arch-circle">2</div>
+              <div class="arch-line"></div>
+            </div>
+            <div class="arch-content">
+              <h4>Query Embedding — <code>retrieval.py</code></h4>
+              <p>At query time, the same sentence-transformer encodes the user's question into a 384-dimensional vector, then L2-normalises it.</p>
+              <div class="arch-detail">
+                Model: <code>sentence-transformers/all-MiniLM-L6-v2</code> — 22 MB, 384 dim, CPU-friendly (~20 ms per query).<br>
+                The model is cached in memory after the first call so subsequent queries pay no reload cost.
+              </div>
+            </div>
+          </div>
+
+          <div class="arch-step">
+            <div class="arch-dot">
+              <div class="arch-circle">3</div>
+              <div class="arch-line"></div>
+            </div>
+            <div class="arch-content">
+              <h4>Cosine Search — <code>retrieval.py</code></h4>
+              <p>The query vector is dot-producted against every row of the embedding matrix in a single NumPy operation. Because all vectors are L2-normalised, the dot product equals cosine similarity. The top-k indices are returned with their scores.</p>
+              <div class="arch-detail">
+                Implementation: <code>scores = embeddings @ qvec  →  np.argpartition(scores, -k)[-k:]</code><br>
+                Flat index: O(n) per query. For n=15,000 and 384 dims this takes &lt;1 ms on any modern CPU — no approximate nearest-neighbour library (FAISS / HNSW) needed at this scale.
+              </div>
+            </div>
+          </div>
+
+          <div class="arch-step">
+            <div class="arch-dot">
+              <div class="arch-circle">4</div>
+              <div class="arch-line"></div>
+            </div>
+            <div class="arch-content">
+              <h4>Grounded Generation — <code>generation.py</code></h4>
+              <p>The top-k chunks are formatted into a context block and injected into a structured prompt sent to the LLM (Anthropic Claude or a local HuggingFace model). The LLM is instructed to answer <em>only</em> from the provided context and to cite chunk IDs.</p>
+              <div class="arch-detail">
+                Default model: <code>claude-haiku-4-5-20251001</code> — fast, cost-efficient (~2–4 s, ~$0.0004 per query).<br>
+                Higher quality option: <code>claude-sonnet-4-6</code> (change <code>MODEL</code> in generation.py or select in the UI).<br>
+                Local option: <code>google/flan-t5-base</code> (~300 MB, ~30 s on CPU) for offline / private use.
+              </div>
+            </div>
+          </div>
+
+          <div class="arch-step">
+            <div class="arch-dot">
+              <div class="arch-circle" style="background:#1e7c3a;">✓</div>
+            </div>
+            <div class="arch-content">
+              <h4>Structured Result — <code>rag_system.py</code></h4>
+              <p>The orchestrator packages the answer, cited source IDs, and full chunk objects (with scores) into a JSON-serialisable dict. Timing data for each sub-step is included for the Pipeline Trace panel in the UI.</p>
+              <div class="arch-detail">
+                Return shape: <code>{"answer": "…[Source: chunk_id]", "sources": [...], "retrieved_chunks": [...], "_timings": {"embed_retrieve_ms": N, "generate_ms": N}}</code>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /arch-flow -->
+      </div>
+
+      <!-- Prompt structure -->
+      <div id="arch-prompt">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin:24px 0 10px;">Prompt Structure</h3>
+        <p>Every call to the Anthropic API uses the following structure. Understanding the prompt explains most of the system's behaviour.</p>
+
+        <div class="code-block" style="font-size:.76rem;line-height:2.1;">
+<span class="cb-comment">── SYSTEM PROMPT (constant) ────────────────────────────</span>
+<span class="cb-ok">You are a pediatric medicine question-answering assistant.</span>
+<span class="cb-ok">Answer questions using ONLY the provided context passages.</span>
+<span class="cb-ok">Rules:</span>
+<span class="cb-ok">1. Base your answer strictly on the retrieved context.</span>
+<span class="cb-ok">2. If the answer is not found in the context, say:</span>
+<span class="cb-ok">   "The information was not found in the provided sources."</span>
+<span class="cb-ok">3. After your answer, always cite the chunk IDs you relied on,</span>
+<span class="cb-ok">   like: [Source: chunk_id_1, chunk_id_2]</span>
+<span class="cb-ok">4. Be concise and clinically precise. Do not add information</span>
+<span class="cb-ok">   from general knowledge.</span>
+
+<span class="cb-comment">── USER MESSAGE (built per query) ──────────────────────</span>
+<span class="cb-flag">Question:</span>
+<span class="cb-out">{the user's question}</span>
+
+<span class="cb-flag">Context:</span>
+<span class="cb-out">[aap_p0251_fixed_000] (source: AAP_Case-Based.pdf, page 251)</span>
+<span class="cb-out">{chunk text …}</span>
+
+<span class="cb-out">---</span>
+
+<span class="cb-out">[kliegman_p0152_fixed_002] (source: Kliegman.pdf, page 152)</span>
+<span class="cb-out">{chunk text …}</span>
+
+<span class="cb-comment">  … up to k chunks, each separated by --- …</span>
+
+<span class="cb-flag">Answer:</span>
+        </div>
+
+        <div class="info" style="margin-top:12px;">
+          <strong>Why strict grounding matters:</strong> Without rule #4, Claude would draw on its medical training knowledge and generate fluent but potentially wrong or hallucinated answers. The prompt forces it to treat the retrieval results as the only valid information source — making the citation honest and the "not found" fallback meaningful.
+        </div>
+
+        <table style="margin-top:16px;">
+          <tr><th>Prompt component</th><th>Controlled by</th><th>Change it in</th></tr>
+          <tr><td>System instruction text</td><td><code>SYSTEM_PROMPT</code> constant</td><td><code>src/generation.py</code> line 30</td></tr>
+          <tr><td>Max answer length</td><td><code>MAX_TOKENS = 512</code></td><td><code>src/generation.py</code> line 28</td></tr>
+          <tr><td>Context format (chunk layout)</td><td><code>_format_context()</code></td><td><code>src/generation.py</code> line 40</td></tr>
+          <tr><td>Model used</td><td><code>MODEL</code> constant or UI dropdown</td><td>UI → Controls bar, or <code>generation.py</code> line 27</td></tr>
+          <tr><td>Number of chunks passed</td><td>Top-k slider</td><td>UI → Controls bar (1–10)</td></tr>
+        </table>
+      </div>
+
+    </div><!-- /architecture -->
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         FAQ
+         ═══════════════════════════════════════════════════════ -->
+    <div class="section" id="faq">
+      <div class="section-header">
+        <span class="section-icon">❓</span>
+        <h2>Frequently Asked Questions</h2>
+        <span class="page-badge">FAQ</span>
+      </div>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q"><span class="faq-q-badge">Q</span>Why does the answer sometimes say "The information was not found in the provided sources" even for a reasonable question?</div>
+          <div class="faq-a">This happens when the retrieved chunks don't contain the answer — either because the topic isn't in the corpus, the question phrasing doesn't match the book's vocabulary, or the relevant passage was ranked below position k. Try: increasing Top-k, switching strategy (Fixed ↔ Paragraph), or rephrasing with clinical terminology. It can also happen with multi-part questions that require information from two different sections of the books.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q"><span class="faq-q-badge">Q</span>Can I add my own PDF to the corpus?</div>
+          <div class="faq-a">Yes. Place the PDF in <code>data/raw/</code>, then open <code>src/build_index.py</code> and add a line to the <code>PDF_FILES</code> list (or equivalent config at the top of the file). Then rebuild the index via the Rebuild page or <code>python src/build_index.py</code>. Chunk IDs will be prefixed with a slug derived from the filename.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q"><span class="faq-q-badge">Q</span>How long does rebuilding the index take?</div>
+          <div class="faq-a">About <strong>90–120 seconds</strong> on a modern laptop CPU for both PDFs together (~15,000 chunks, 384-dim embeddings). Building only one strategy takes roughly half that. The Rebuild page shows a live log with per-batch progress. The embedding model (<code>all-MiniLM-L6-v2</code>) is cached after the first load, so subsequent rebuilds are faster to start.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q"><span class="faq-q-badge">Q</span>What is the difference between Fixed-size and Paragraph chunking?</div>
+          <div class="faq-a"><strong>Fixed-size</strong> splits text into overlapping windows of a fixed character count (default 400 chars, 50 overlap). Every chunk is roughly the same length, which makes the embedding space uniform. It works well for the Kliegman decision-tree pages where paragraphs are short and dense. <strong>Paragraph-aware</strong> splits on double-newlines and keeps natural paragraph boundaries intact. Chunks vary in length (100–700 chars) but preserve narrative context. It works better for the AAP case-based Q&amp;A sections where multi-sentence paragraphs contain a complete thought. The ablation study lets you compare their Hit@k side-by-side.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q"><span class="faq-q-badge">Q</span>Why is the local HuggingFace model so slow?</div>
+          <div class="faq-a">Local models run on CPU by default. Flan-T5 Base takes <strong>30–90 seconds</strong> per query on a typical laptop CPU. Zephyr-7B takes several minutes. This is a fundamental hardware limitation — GPUs are 50–100× faster for transformer inference. The models are useful when you need an offline / private pipeline, but for speed, the Claude API is always preferable. If you have an NVIDIA GPU, <code>accelerate</code> will automatically use it (<code>device_map="auto"</code> in the pipeline call).</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q"><span class="faq-q-badge">Q</span>Can I use GPT-4 or Gemini instead of Claude?</div>
+          <div class="faq-a">Not out of the box, but the architecture makes it easy. <code>generate_answer()</code> in <code>generation.py</code> routes on the model name string: anything starting with <code>"claude-"</code> goes to the Anthropic backend; everything else currently goes to the HuggingFace backend. To add OpenAI, add an <code>elif model.startswith("gpt-")</code> branch that calls the <code>openai</code> package, and expose it in the UI dropdown in <code>app.py</code>. The prompt format (system + user + context) is identical across providers.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q"><span class="faq-q-badge">Q</span>What does the ±2 page tolerance in Hit@k mean?</div>
+          <div class="faq-a">When we check whether a retrieved chunk "hit" the correct source, we allow the page number to be off by up to 2 pages in either direction. This accounts for: (a) differences between PDF page numbers and the book's printed page numbers (cover pages, introductions), (b) content that spans a page break and lands in a chunk from an adjacent page, and (c) minor imprecision in our gold set annotations. A hit is counted if <em>any</em> of the top-k retrieved chunks is within ±2 pages of the expected answer page in the correct document.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q"><span class="faq-q-badge">Q</span>How do I completely reset the system to a clean state?</div>
+          <div class="faq-a">
+            Delete these generated files, then rebuild:<br>
+            <code style="display:block;margin:6px 0 2px;">del index\*.npy index\*.json</code>
+            <code style="display:block;margin:2px 0;">del eval\ablation_results.json</code>
+            <code style="display:block;margin:2px 0 6px;"># Keep eval\gold_set.jsonl and eval\manual_labels.json unless you also want to reset those</code>
+            Then run <code>python src/build_index.py</code> to regenerate the index. The model cache (<code>model_cache/</code>) can also be deleted to force re-download of HuggingFace weights.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q"><span class="faq-q-badge">Q</span>Why does the pipeline trace panel show two separate timings?</div>
+          <div class="faq-a">The timings distinguish the two slowest steps: <strong>embed + retrieve</strong> (embedding the query + cosine search, typically &lt;200 ms) and <strong>generate</strong> (LLM API call, typically 2–8 s for Claude). Separating them lets you see whether latency is a retrieval problem (index too large, model loading) or a generation problem (slow API, long answer, high max_tokens). Local HF models will show generate times in the 30–120 s range.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q"><span class="faq-q-badge">Q</span>Can I run the evaluation without the web UI?</div>
+          <div class="faq-a">Yes — <code>eval/run_eval.py</code> is a standalone script. Run it from the project root:<br>
+          <code>python eval/run_eval.py</code> for the standard evaluation, or<br>
+          <code>python eval/run_eval.py --ablation</code> for the full ablation table.<br>
+          Results are printed to stdout and also saved to <code>eval/ablation_results.json</code> so they appear in the web UI when you start the server.</div>
+        </div>
+
+      </div><!-- /faq-list -->
+    </div><!-- /faq -->
+
+  </main>
+</div>
+
+<script>
+  /* Highlight active TOC link on scroll */
+  const sections = document.querySelectorAll(".section[id]");
+  const tocLinks = document.querySelectorAll(".toc-link");
+
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        tocLinks.forEach(l => {
+          l.classList.toggle("active", l.getAttribute("href") === "#" + e.target.id);
+        });
+      }
+    });
+  }, { rootMargin: "-20% 0px -70% 0px" });
+
+  sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

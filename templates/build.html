@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rebuild Index — Pediatric RAG</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f0f4f8;
+      color: #1a2a3a;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a3a5c 0%, #2e6da4 100%);
+      color: white;
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    header .logo { font-size: 1.8rem; line-height: 1; }
+    header h1    { font-size: 1.25rem; font-weight: 700; }
+    header p     { font-size: .75rem; opacity: .75; margin-top: 2px; }
+    .header-badge {
+      margin-left: auto;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: .72rem;
+      white-space: nowrap;
+    }
+    nav { display:flex; gap:6px; margin-left:12px; }
+    nav a {
+      color: rgba(255,255,255,.75);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 7px;
+      padding: 5px 14px;
+      font-size: .8rem;
+      text-decoration: none;
+      background: rgba(255,255,255,.08);
+      transition: background .15s;
+    }
+    nav a.active {
+      background: rgba(255,255,255,.25);
+      color: white;
+      font-weight: 600;
+      border-color: rgba(255,255,255,.4);
+    }
+    nav a:hover:not(.active) { background: rgba(255,255,255,.15); }
+
+    /* ── Page layout ── */
+    .page {
+      max-width: 960px;
+      margin: 32px auto;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 22px;
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-body { padding: 22px; }
+    .params-header { background: #e8f2fc; color: #1a3a5c; }
+    .log-header    { background: #1a2a3a; color: #7ab8f5; }
+    .info-header   { background: #fef8e8; color: #7a5000; }
+
+    /* ── Params grid ── */
+    .params-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 22px;
+      align-items: end;
+    }
+    .param-group { display: flex; flex-direction: column; gap: 8px; }
+    .param-label {
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #5a7a9a;
+    }
+
+    /* Strategy toggle */
+    .strat-toggle {
+      display: flex;
+      border: 1.5px solid #c2d8f0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .strat-toggle input { display: none; }
+    .strat-toggle label {
+      flex: 1;
+      text-align: center;
+      padding: 8px 6px;
+      font-size: .82rem;
+      cursor: pointer;
+      background: #f5f8fc;
+      color: #5a7a9a;
+      transition: background .15s, color .15s;
+      user-select: none;
+      border-right: 1px solid #c2d8f0;
+    }
+    .strat-toggle label:last-of-type { border-right: none; }
+    .strat-toggle input:checked + label {
+      background: #2e6da4;
+      color: white;
+      font-weight: 600;
+    }
+
+    /* Number + slider */
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    .slider-row input[type=range] { flex: 1; accent-color: #2e6da4; cursor: pointer; }
+    .num-input {
+      width: 64px;
+      border: 1.5px solid #c2d8f0;
+      border-radius: 7px;
+      padding: 6px 8px;
+      font-size: .88rem;
+      text-align: center;
+      outline: none;
+      color: #1a2a3a;
+      transition: border-color .15s;
+    }
+    .num-input:focus { border-color: #2e6da4; }
+
+    /* Info chips */
+    .info-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+    .info-chip {
+      background: #f0f6ff;
+      border: 1px solid #c2d8f0;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: .8rem;
+      color: #1a3a5c;
+      line-height: 1.4;
+    }
+    .info-chip strong { display: block; font-size: .95rem; color: #2e6da4; }
+
+    /* Action row */
+    .action-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    #run-btn {
+      background: #2e6da4;
+      color: white;
+      border: none;
+      border-radius: 9px;
+      padding: 11px 28px;
+      font-size: .95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      transition: background .15s;
+    }
+    #run-btn:hover    { background: #1a5c93; }
+    #run-btn:disabled { background: #a0b8d0; cursor: default; }
+    #run-btn.running  { background: #c0392b; }
+    #run-btn.running:hover { background: #a03020; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #status-badge {
+      font-size: .82rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      display: none;
+    }
+    .badge-running { background: #fff3cd; color: #856404; border: 1px solid #f4cc50; display: inline-block !important; }
+    .badge-ok      { background: #d4edda; color: #1e5c2e; border: 1px solid #a8d8b0; display: inline-block !important; }
+    .badge-fail    { background: #fde8e7; color: #8a2010; border: 1px solid #f0b8b0; display: inline-block !important; }
+
+    /* ── Terminal log ── */
+    #log-wrap {
+      background: #0d1117;
+      border-radius: 0 0 14px 14px;
+      padding: 18px 20px;
+      min-height: 320px;
+      max-height: 520px;
+      overflow-y: auto;
+      font-family: "Courier New", monospace;
+      font-size: .8rem;
+      line-height: 1.6;
+    }
+    .log-line { color: #c9d1d9; white-space: pre-wrap; word-break: break-all; }
+    .log-line.success { color: #56d364; }
+    .log-line.error   { color: #f85149; }
+    .log-line.section { color: #79c0ff; font-weight: bold; }
+    .log-line.timing  { color: #e3b341; }
+    .log-line.done    { color: #56d364; font-weight: bold; font-size: .88rem; }
+
+    .log-placeholder {
+      color: #484f58;
+      font-style: italic;
+      text-align: center;
+      margin-top: 100px;
+    }
+
+    /* Progress bar */
+    #progress-bar-wrap {
+      height: 4px;
+      background: #1a2a3a;
+      display: none;
+    }
+    #progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #2e6da4, #56d364);
+      width: 0%;
+      transition: width .3s ease;
+      animation: indeterminate 1.5s ease-in-out infinite;
+    }
+    @keyframes indeterminate {
+      0%   { margin-left: 0%;   width: 30%; }
+      50%  { margin-left: 50%;  width: 40%; }
+      100% { margin-left: 100%; width: 10%; }
+    }
+    #progress-bar.done {
+      animation: none;
+      margin-left: 0;
+      width: 100%;
+      background: #56d364;
+    }
+
+    /* ── Ablation presets ── */
+    .preset-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .preset-btn {
+      background: #f0f6ff;
+      border: 1px solid #c2d8f0;
+      border-radius: 8px;
+      padding: 7px 13px;
+      font-size: .8rem;
+      color: #1a3a5c;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .preset-btn:hover { background: #ddeeff; border-color: #2e6da4; }
+
+    /* ── Tooltips ── */
+    [data-tooltip] { position: relative; cursor: help; }
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #1a2a3a; color: #ddeeff; padding: 8px 12px; border-radius: 8px;
+      font-size: .72rem; font-weight: 400; line-height: 1.5; white-space: normal;
+      width: max-content; max-width: 240px; z-index: 9999;
+      pointer-events: none; opacity: 0; transition: opacity .18s;
+      text-transform: none; letter-spacing: 0; box-shadow: 0 4px 14px rgba(0,0,0,.3);
+    }
+    [data-tooltip]::before {
+      content: ''; position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%);
+      border: 5px solid transparent; border-top-color: #1a2a3a;
+      z-index: 9999; pointer-events: none; opacity: 0; transition: opacity .18s;
+    }
+    [data-tooltip]:hover::after, [data-tooltip]:hover::before { opacity: 1; }
+    .tt { border-bottom: 1px dotted #8aabcc; }
+    #dark-toggle{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:5px 11px;font-size:.95rem;cursor:pointer;color:white;transition:background .18s;flex-shrink:0;margin-left:6px;}
+    #dark-toggle:hover{background:rgba(255,255,255,.26);}
+    html.dark body{background:#0e1a28;color:#c8d8e8;}
+    html.dark header{background:linear-gradient(135deg,#0d2236,#1a4a7a);}
+    html.dark .controls-bar,.html.dark .build-controls{background:#111e2d;border-color:#1e3a52;}
+    html.dark .card{background:#162234;border-color:#1e3a52;}
+    html.dark h1,html.dark h2,html.dark h3,html.dark h4{color:#c8d8e8;}
+    html.dark p,html.dark li{color:#a0b8cc;}
+    html.dark label,html.dark .ctrl-label{color:#6a8aaa;}
+    html.dark th{background:#111e2d!important;color:#6a8aaa!important;border-color:#1e3a52!important;}
+    html.dark td{border-color:#1e3a52!important;color:#a0b8cc;}
+    html.dark input,html.dark select,html.dark textarea{background:#111e2d;border-color:#1e3a52;color:#c8d8e8;}
+    html.dark select option{background:#111e2d;}
+    html.dark code{background:#0d1b2a!important;border-color:#1e3a52!important;color:#5abedc!important;}
+    html.dark ::-webkit-scrollbar-track{background:#0e1a28;}html.dark ::-webkit-scrollbar-thumb{background:#1e3a52;}
+  </style>
+  <script src="/static/darkmode.js"></script>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">🩺</div>
+  <div>
+    <h1>Pediatric RAG — Index Builder</h1>
+    <p>Rebuild the vector index with custom chunking parameters</p>
+  </div>
+  <div class="header-badge">Mid-Course Assignment</div>
+  <nav>
+    <a href="/build" class="active">1. Rebuild</a>
+    <a href="/">2. Demo</a>
+    <a href="/eval">3. Eval</a>
+    <a href="/ablation">4. Ablation</a>
+    <a href="/goldset">5. Gold Set</a>
+    <a href="/help">Help</a>
+    <a href="/qa">Q&amp;A</a>
+  </nav>
+  <button id="dark-toggle" onclick="toggleDark()" title="Switch to dark mode">🌙</button>
+</header>
+
+<div class="page">
+
+  <!-- ── Parameters ── -->
+  <div class="card">
+    <div class="card-header params-header">⚙ &nbsp;Build Parameters</div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:22px;">
+
+      <div class="params-grid">
+
+        <!-- Strategy -->
+        <div class="param-group">
+          <span class="param-label"><span class="tt" data-tooltip="How the PDF text is split into chunks for indexing. Both = build fixed-size AND paragraph indexes simultaneously. Fixed = equal character-length blocks only. Paragraph = split at natural paragraph boundaries only.">Chunking Strategy</span></span>
+          <div class="strat-toggle">
+            <input type="radio" name="strategy" id="st-both" value="both" checked />
+            <label for="st-both" title="Build both a fixed-size index (400 chars) and a paragraph-aware index in one run">Both</label>
+            <input type="radio" name="strategy" id="st-fixed" value="fixed" />
+            <label for="st-fixed" title="Fixed-size only: split text into equal character-length blocks with overlap">Fixed</label>
+            <input type="radio" name="strategy" id="st-para" value="paragraph" />
+            <label for="st-para" title="Paragraph only: split at natural paragraph boundaries (variable chunk length)">Paragraph</label>
+          </div>
+          <span style="font-size:.72rem;color:#5a7a9a;margin-top:2px;" id="strat-hint">
+            Builds both fixed-size and paragraph-aware indexes
+          </span>
+        </div>
+
+        <!-- Chunk size -->
+        <div class="param-group">
+          <span class="param-label"><span class="tt" data-tooltip="Number of characters per chunk. Smaller = precise retrieval, less context per chunk. Larger = richer context but weaker retrieval signal. all-MiniLM-L6-v2 truncates at ~256 tokens (~1000 chars) — keep below that. Default: 400.">Chunk Size (chars)</span></span>
+          <div class="slider-row">
+            <input type="range" id="size-slider" min="100" max="1200" value="400" step="50"
+                   oninput="syncSize(this.value)" />
+            <input type="number" id="size-input" class="num-input"
+                   min="100" max="1200" value="400"
+                   oninput="syncSize(this.value)" />
+          </div>
+          <span style="font-size:.72rem;color:#5a7a9a;margin-top:2px;" id="size-hint">
+            ~80 tokens · ~2 sentences · default ablation sweet spot
+          </span>
+        </div>
+
+        <!-- Overlap -->
+        <div class="param-group">
+          <span class="param-label"><span class="tt" data-tooltip="Characters shared between adjacent chunks. Prevents information loss at boundaries — e.g. 50-char overlap means the last 50 chars of chunk N repeat as the first 50 chars of chunk N+1. Helps retrieval when answers span chunk boundaries. Default: 50.">Overlap (chars)</span></span>
+          <div class="slider-row">
+            <input type="range" id="overlap-slider" min="0" max="300" value="50" step="10"
+                   oninput="syncOverlap(this.value)" />
+            <input type="number" id="overlap-input" class="num-input"
+                   min="0" max="300" value="50"
+                   oninput="syncOverlap(this.value)" />
+          </div>
+          <span style="font-size:.72rem;color:#5a7a9a;margin-top:2px;" id="overlap-hint">
+            12.5% of chunk size — context continuity between chunks
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Presets -->
+      <div>
+        <div class="param-label" style="margin-bottom:8px;"><span class="tt" data-tooltip="One-click configurations for common ablation experiments. Apply a preset, rebuild, then run the Ablation Study page to compare Hit@k and Precision@k across configurations.">Ablation Presets</span></div>
+        <div class="preset-row">
+          <button class="preset-btn" onclick="applyPreset('both',400,50)" title="Recommended baseline — 400-char fixed chunks with 50-char overlap, best Hit@k in our experiments">Default (both, 400, 50)</button>
+          <button class="preset-btn" onclick="applyPreset('fixed',300,0)" title="Smaller chunks → more precise retrieval, but answers may lack context">Small fixed (300, no overlap)</button>
+          <button class="preset-btn" onclick="applyPreset('fixed',700,100)" title="Larger chunks → richer context, but embedding quality drops near the 256-token MiniLM limit">Large fixed (700, 100 overlap)</button>
+          <button class="preset-btn" onclick="applyPreset('paragraph',400,50)" title="Paragraph-boundary chunking — variable length, better semantic coherence but uneven embedding quality">Paragraph only</button>
+        </div>
+      </div>
+
+      <!-- Info chips -->
+      <div>
+        <div class="param-label" style="margin-bottom:8px;">Estimated Output</div>
+        <div class="info-chips">
+          <div class="info-chip" title="Total chunks = (total corpus chars) ÷ (chunk size − overlap). Changes when you adjust the sliders above."><strong id="est-fixed">~10,107</strong> <span class="tt" data-tooltip="Total text segments created from both books (1,156 pages) with the current Chunk Size and Overlap. Each chunk is stored as text + a 384-dim embedding vector.">fixed chunks</span></div>
+          <div class="info-chip" title="Paragraph chunks depend on paragraph structure, not your size/overlap settings."><strong>~5,250</strong> paragraph chunks (fixed count)</div>
+          <div class="info-chip" title="Rough CPU embedding time at ~45 chunks/second (all-MiniLM-L6-v2 on a typical laptop CPU). GPU would be ~10× faster."><strong id="est-time">~6 min</strong> <span class="tt" data-tooltip="Estimated build time at ~45 chunks/sec on CPU. The bottleneck is computing 384-dim embeddings for each chunk. GPU would be ~10× faster.">on CPU</span></div>
+          <div class="info-chip"><strong>384-dim</strong> <span class="tt" data-tooltip="all-MiniLM-L6-v2 encodes each chunk into a 384-dimensional vector. Vectors are L2-normalized (unit length) so cosine similarity = dot product — enabling fast matrix search.">L2-normalised vectors</span></div>
+        </div>
+      </div>
+
+      <!-- Action row -->
+      <div class="action-row">
+        <button id="run-btn" onclick="startBuild()">
+          <span id="btn-icon">▶</span>
+          <span id="btn-text">Start Build</span>
+        </button>
+        <span id="status-badge"></span>
+        <span style="font-size:.78rem;color:#a0b8d0;" id="elapsed-display"></span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Live Log ── -->
+  <div class="card">
+    <div class="card-header log-header">
+      🖥 &nbsp;Build Log
+      <span style="margin-left:auto;font-size:.7rem;font-weight:400;color:#484f58;" id="log-line-count"></span>
+      <button onclick="clearLog()"
+        style="margin-left:10px;background:none;border:1px solid #30363d;color:#6a8aaa;border-radius:5px;
+               padding:2px 9px;font-size:.7rem;cursor:pointer;">Clear</button>
+    </div>
+    <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+    <div id="log-wrap">
+      <div class="log-placeholder">Build log will appear here when you start a build.</div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+  // ── Sync controls ────────────────────────────────────────────────────────────
+  const stratHints = {
+    both:      "Builds both fixed-size and paragraph-aware indexes",
+    fixed:     "Builds the fixed-size index only",
+    paragraph: "Builds the paragraph-aware index only",
+  };
+
+  document.querySelectorAll('input[name="strategy"]').forEach(r =>
+    r.addEventListener("change", () => {
+      document.getElementById("strat-hint").textContent = stratHints[r.value];
+      updateEstimates();
+    })
+  );
+
+  function syncSize(v) {
+    v = Math.max(100, Math.min(1200, parseInt(v) || 400));
+    document.getElementById("size-slider").value = v;
+    document.getElementById("size-input").value  = v;
+    // clamp overlap
+    const ov = parseInt(document.getElementById("overlap-input").value);
+    if (ov >= v) syncOverlap(Math.floor(v * 0.12));
+    updateEstimates();
+  }
+
+  function syncOverlap(v) {
+    const maxOv = parseInt(document.getElementById("size-input").value) - 1;
+    v = Math.max(0, Math.min(maxOv, parseInt(v) || 0));
+    document.getElementById("overlap-slider").value = v;
+    document.getElementById("overlap-input").value  = v;
+    const pct = Math.round(v / parseInt(document.getElementById("size-input").value) * 100);
+    document.getElementById("overlap-hint").textContent =
+      `${pct}% of chunk size — context continuity between chunks`;
+    updateEstimates();
+  }
+
+  function updateEstimates() {
+    const size    = parseInt(document.getElementById("size-input").value);
+    const overlap = parseInt(document.getElementById("overlap-input").value);
+    const step    = size - overlap;
+    const totalChars = 1096 * 1800; // rough: 1096 pages × ~1800 chars/page
+    const estChunks  = Math.round(totalChars / step);
+    document.getElementById("est-fixed").textContent = "~" + estChunks.toLocaleString();
+
+    const strat   = document.querySelector('input[name="strategy"]:checked').value;
+    const embRate = 10107 / 227;                          // chunks/s from actual run
+    const chunks  = strat === "both"      ? estChunks + 5250
+                  : strat === "fixed"     ? estChunks
+                  : 5250;
+    const secs = chunks / embRate;
+    const mins = Math.ceil(secs / 60);
+    document.getElementById("est-time").textContent = `~${mins} min`;
+
+    const hint = size < 200 ? "Very small — may fragment sentences"
+               : size < 300 ? "Small — high precision, lower context"
+               : size < 500 ? "~80 tokens · ~2 sentences · default ablation sweet spot"
+               : size < 800 ? "Large — richer context, diluted retrieval signal"
+               :               "Very large — risk of topic drift within chunk";
+    document.getElementById("size-hint").textContent = hint;
+  }
+
+  function applyPreset(strat, size, overlap) {
+    document.querySelector(`input[value="${strat}"]`).checked = true;
+    document.getElementById("strat-hint").textContent = stratHints[strat];
+    syncSize(size);
+    syncOverlap(overlap);
+  }
+
+  // ── Build ────────────────────────────────────────────────────────────────────
+  let _source = null;
+  let _startTs = null;
+  let _elapsedTimer = null;
+  let _lineCount = 0;
+
+  function startBuild() {
+    const strategy  = document.querySelector('input[name="strategy"]:checked').value;
+    const chunkSize = parseInt(document.getElementById("size-input").value);
+    const overlap   = parseInt(document.getElementById("overlap-input").value);
+
+    // Reset UI
+    const logWrap = document.getElementById("log-wrap");
+    logWrap.innerHTML = "";
+    _lineCount = 0;
+    document.getElementById("log-line-count").textContent = "";
+    setBadge("running", "Building…");
+    setBtn(true);
+    showProgress(true);
+    document.getElementById("elapsed-display").textContent = "";
+
+    _startTs = Date.now();
+    _elapsedTimer = setInterval(() => {
+      const s = ((Date.now() - _startTs) / 1000).toFixed(0);
+      document.getElementById("elapsed-display").textContent = `Elapsed: ${s}s`;
+    }, 1000);
+
+    // POST to start build
+    fetch("/build/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ strategy, chunk_size: chunkSize, overlap })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.error) { onBuildDone(false, d.error); return; }
+      streamLog();
+    })
+    .catch(e => onBuildDone(false, "Network error: " + e.message));
+  }
+
+  function streamLog() {
+    if (_source) _source.close();
+    _source = new EventSource("/build/stream");
+    const logWrap = document.getElementById("log-wrap");
+
+    _source.onmessage = (e) => {
+      const raw = e.data;
+
+      if (raw === "__PING__") return;
+
+      if (raw.startsWith("__DONE__")) {
+        const rc = parseInt(raw.slice(8));
+        _source.close();
+        onBuildDone(rc === 0);
+        return;
+      }
+
+      _lineCount++;
+      document.getElementById("log-line-count").textContent = `${_lineCount} lines`;
+
+      const div = document.createElement("div");
+      div.className = "log-line " + classifyLine(raw);
+      div.textContent = raw;
+      logWrap.appendChild(div);
+      logWrap.scrollTop = logWrap.scrollHeight;
+    };
+
+    _source.onerror = () => {
+      _source.close();
+      onBuildDone(false, "Stream disconnected");
+    };
+  }
+
+  function classifyLine(line) {
+    if (line.startsWith("✓") || line.includes("complete"))      return "done";
+    if (line.startsWith("ERROR") || line.startsWith("error"))   return "error";
+    if (line.startsWith("[") || line.startsWith("==="))         return "section";
+    if (line.includes("Done in") || line.includes("seconds"))   return "timing";
+    if (line.includes("Saved") || line.includes("ready"))       return "success";
+    return "";
+  }
+
+  function onBuildDone(ok, msg) {
+    clearInterval(_elapsedTimer);
+    setBtn(false);
+    showProgress(false, ok);
+
+    const totalSecs = ((Date.now() - _startTs) / 1000).toFixed(1);
+    document.getElementById("elapsed-display").textContent = `Finished in ${totalSecs}s`;
+
+    if (msg) {
+      const div = document.createElement("div");
+      div.className = "log-line error";
+      div.textContent = msg;
+      document.getElementById("log-wrap").appendChild(div);
+    }
+
+    setBadge(ok ? "ok" : "fail", ok ? "Build succeeded" : "Build failed");
+  }
+
+  // ── UI helpers ───────────────────────────────────────────────────────────────
+  function setBtn(running) {
+    const btn = document.getElementById("run-btn");
+    btn.disabled = running;
+    document.getElementById("btn-icon").textContent = running ? "" : "▶";
+    document.getElementById("btn-text").textContent = running ? "Building…" : "Start Build";
+    if (running) {
+      const sp = document.createElement("div");
+      sp.className = "spinner";
+      sp.id = "_sp";
+      document.getElementById("btn-icon").replaceWith(sp);
+    } else {
+      const sp = document.getElementById("_sp");
+      if (sp) {
+        const icon = document.createElement("span");
+        icon.id = "btn-icon";
+        icon.textContent = "▶";
+        sp.replaceWith(icon);
+      }
+    }
+  }
+
+  function setBadge(type, text) {
+    const b = document.getElementById("status-badge");
+    b.className = "badge-" + type;
+    b.textContent = text;
+    b.style.display = "inline-block";
+  }
+
+  function showProgress(active, success) {
+    const wrap = document.getElementById("progress-bar-wrap");
+    const bar  = document.getElementById("progress-bar");
+    if (active) {
+      wrap.style.display = "block";
+      bar.classList.remove("done");
+      bar.style.cssText = "";
+    } else {
+      bar.classList.add("done");
+      bar.style.background = success ? "#56d364" : "#f85149";
+      setTimeout(() => { wrap.style.display = "none"; }, 1800);
+    }
+  }
+
+  function clearLog() {
+    document.getElementById("log-wrap").innerHTML =
+      '<div class="log-placeholder">Log cleared.</div>';
+    _lineCount = 0;
+    document.getElementById("log-line-count").textContent = "";
+  }
+
+  // Init estimates
+  updateEstimates();
+
+  /* ── Trace panel toggle ── */
+  let _traceOpen = true;   // build page: open by default (log is the main content)
+  function toggleTrace() {
+    _traceOpen = !_traceOpen;
+    document.getElementById("trace-body").style.display = _traceOpen ? "grid" : "none";
+    document.getElementById("trace-caret").classList.toggle("open", _traceOpen);
+  }
+</script>
+
+<!-- ══════════════════════════════════════════════════════════
+     Pipeline Trace Panel — Build Index
+     ══════════════════════════════════════════════════════════ -->
+<style>
+  .trace-panel{font-family:"Courier New",monospace;background:#0d1b2a;border-top:2px solid #1e5c8a;}
+  .trace-hdr{display:flex;align-items:center;gap:10px;padding:10px 24px;cursor:pointer;background:#0f2030;user-select:none;transition:background .15s;}
+  .trace-hdr:hover{background:#132840;}
+  .trace-pill{background:#1e4a6e;color:#7ec8e3;border-radius:12px;padding:3px 12px;font-family:"Segoe UI",sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.06em;white-space:nowrap;}
+  .trace-hdr-sub{font-size:.72rem;color:#3a6a8a;flex:1;font-family:"Segoe UI",sans-serif;}
+  .trace-caret{color:#3a6a8a;transition:transform .2s;}
+  .trace-caret.open{transform:rotate(90deg);}
+  .trace-body{display:grid;grid-template-columns:1fr 420px;max-height:360px;}
+  @media(max-width:860px){.trace-body{grid-template-columns:1fr;}}
+  .trace-log-section{padding:14px 22px;border-right:1px solid #1e3a52;overflow-y:auto;}
+  .trace-explain-section{padding:14px 22px;font-family:"Segoe UI",Arial,sans-serif;overflow-y:auto;background:#0f1e2e;}
+  .trace-section-title{font-size:.58rem;font-weight:700;letter-spacing:.14em;color:#1e5a8a;margin-bottom:10px;font-family:"Segoe UI",sans-serif;}
+  .explain-step{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #172a3a;}
+  .explain-step:last-child{border-bottom:none;}
+  .explain-num{background:#1a3e5c;color:#4abedc;border-radius:50%;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;margin-top:1px;font-family:"Segoe UI",sans-serif;flex-shrink:0;}
+  .explain-title{font-weight:700;color:#6ab8d8;font-size:.78rem;margin-bottom:2px;}
+  .explain-desc{color:#4a7a9a;line-height:1.5;font-size:.73rem;}
+  .explain-code{display:inline-block;background:#152638;border-radius:3px;padding:0 6px;color:#ffd080;font-size:.7rem;font-family:"Courier New",monospace;margin-top:1px;}
+  .trace-note{color:#2a6a3a;font-size:.72rem;margin-top:8px;padding:6px 10px;background:#0a1f0a;border-radius:6px;border-left:3px solid #1e5a2e;}
+</style>
+<div class="trace-panel" id="trace-panel">
+  <div class="trace-hdr" onclick="toggleTrace()">
+    <span class="trace-pill">🔬 Pipeline Trace</span>
+    <span class="trace-hdr-sub">— what build_index.py does step by step</span>
+    <span class="trace-caret open" id="trace-caret">▶</span>
+  </div>
+  <div class="trace-body" id="trace-body">
+
+    <!-- Left: live build log feeds into the existing log-wrap above;
+         here we show a static schema of what each log line means -->
+    <div class="trace-log-section">
+      <div class="trace-section-title">EXPECTED LOG LINES</div>
+      <div style="font-size:.73rem;color:#4a8aaa;line-height:2;">
+        <div><span style="color:#2a5a7a;">INFO &nbsp;</span> <span style="color:#ffd080;">Loading PDF…</span> &nbsp;→ PyMuPDF page-by-page extraction</div>
+        <div><span style="color:#2a5a7a;">INFO &nbsp;</span> <span style="color:#ffd080;">Chunking…</span> &nbsp;&nbsp;&nbsp;→ sliding window over raw text</div>
+        <div><span style="color:#2a5a7a;">INFO &nbsp;</span> <span style="color:#ffd080;">Embedding…</span> &nbsp;&nbsp;→ 384-dim vectors, batch=64</div>
+        <div><span style="color:#2a5a7a;">INFO &nbsp;</span> <span style="color:#ffd080;">Normalising…</span>&nbsp;→ L2-norm so cosine = dot product</div>
+        <div><span style="color:#2a5a7a;">INFO &nbsp;</span> <span style="color:#ffd080;">Saving .npy…</span> &nbsp;→ numpy flat index written to disk</div>
+        <div><span style="color:#2a5a7a;">INFO &nbsp;</span> <span style="color:#ffd080;">Done ✓</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ index ready for /ask queries</div>
+      </div>
+      <div class="trace-note">The real log stream appears in the terminal above. The panel here explains what each line means.</div>
+    </div>
+
+    <!-- Right: explanation -->
+    <div class="trace-explain-section">
+      <div class="trace-section-title">HOW build_index.py WORKS</div>
+      <div class="explain-step">
+        <div class="explain-num">1</div>
+        <div class="explain-body">
+          <div class="explain-title">📄 EXTRACT — PDF → raw text</div>
+          <div class="explain-desc"><span class="explain-code">PyMuPDF (fitz)</span> reads each page. Text is concatenated with page-break markers so we can track page numbers in metadata.</div>
+        </div>
+      </div>
+      <div class="explain-step">
+        <div class="explain-num">2</div>
+        <div class="explain-body">
+          <div class="explain-title">✂ CHUNK — Sliding window</div>
+          <div class="explain-desc"><b>Fixed:</b> 400-char windows, 50-char overlap — overlap prevents cutting a sentence in half. <b>Paragraph:</b> splits at blank lines, preserving semantic boundaries.</div>
+        </div>
+      </div>
+      <div class="explain-step">
+        <div class="explain-num">3</div>
+        <div class="explain-body">
+          <div class="explain-title">🔢 EMBED — Sentence transformer</div>
+          <div class="explain-desc"><span class="explain-code">all-MiniLM-L6-v2</span> encodes each chunk in batches of 64. Output: 384-dim float32 vector per chunk. Runs on CPU (~1 min for 15 k chunks).</div>
+        </div>
+      </div>
+      <div class="explain-step">
+        <div class="explain-num">4</div>
+        <div class="explain-body">
+          <div class="explain-title">📐 NORMALISE — L2 norm</div>
+          <div class="explain-desc">Each vector is divided by its magnitude so <span class="explain-code">‖v‖ = 1</span>. This converts cosine similarity into a simple dot product — fast and exact.</div>
+        </div>
+      </div>
+      <div class="explain-step">
+        <div class="explain-num">5</div>
+        <div class="explain-body">
+          <div class="explain-title">💾 SAVE — numpy flat index</div>
+          <div class="explain-desc"><span class="explain-code">vectors.npy</span> + <span class="explain-code">chunks.json</span>. No database. At 15 k chunks the flat dot-product scan takes &lt;10ms — no HNSW needed (and no Windows bugs).</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pediatric RAG Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Arial, sans-serif; background: #f0f4f8; color: #1a2a3a; min-height: 100vh; }
+
+    /* ── Header ── */
+    header { background: linear-gradient(135deg, #1a3a5c 0%, #2e6da4 100%); color: white; padding: 16px 28px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    header .logo { font-size: 1.8rem; line-height: 1; }
+    header h1    { font-size: 1.25rem; font-weight: 700; }
+    header p     { font-size: .75rem; opacity: .75; margin-top: 2px; }
+    .header-badge { margin-left: auto; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: 4px 14px; font-size: .72rem; white-space: nowrap; }
+    nav { display: flex; gap: 6px; margin-left: 12px; }
+    nav a { color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; padding: 5px 14px; font-size: .8rem; text-decoration: none; background: rgba(255,255,255,.08); transition: background .15s; }
+    nav a:hover  { background: rgba(255,255,255,.18); color: white; }
+    nav a.active { background: rgba(255,255,255,.25); color: white; font-weight: 600; border-color: rgba(255,255,255,.4); }
+
+    /* ── Controls bar ── */
+    .controls-bar { background: #fff; border-bottom: 1px solid #d0dcec; padding: 12px 28px; display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .ctrl-group { display: flex; flex-direction: column; gap: 5px; }
+    .ctrl-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #5a7a9a; }
+
+    #model-select { appearance: none; -webkit-appearance: none; background: #f5f8fc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a7a9a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center; border: 1.5px solid #c2d8f0; border-radius: 8px; padding: 7px 34px 7px 12px; font-size: .85rem; color: #1a2a3a; cursor: pointer; min-width: 240px; outline: none; transition: border-color .15s; }
+    #model-select:focus { border-color: #2e6da4; }
+    #model-select optgroup { font-weight: 700; font-size: .8rem; }
+
+    .radio-group { display: flex; gap: 6px; }
+    .radio-btn { position: relative; }
+    .radio-btn input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .radio-btn label { display: block; padding: 6px 14px; border: 1.5px solid #c2d8f0; border-radius: 7px; font-size: .82rem; color: #4a6a8a; cursor: pointer; background: #f5f8fc; transition: all .15s; white-space: nowrap; }
+    .radio-btn input:checked + label { background: #2e6da4; border-color: #2e6da4; color: white; font-weight: 600; }
+    .radio-btn label:hover { border-color: #2e6da4; color: #2e6da4; }
+    .radio-btn input:checked + label:hover { color: white; }
+
+    #k-slider { width: 100px; accent-color: #2e6da4; }
+    .k-display { display: inline-block; min-width: 18px; font-weight: 700; color: #2e6da4; font-size: .9rem; }
+
+    .hf-pill { display: none; align-items: center; gap: 8px; background: #f0f6ff; border: 1px solid #c2d8f0; border-radius: 8px; padding: 5px 12px; font-size: .78rem; }
+    .hf-pill.visible { display: flex; }
+    .hf-download-btn { background: #2e6da4; color: white; border: none; border-radius: 6px; padding: 3px 10px; font-size: .75rem; cursor: pointer; }
+    .hf-download-btn:disabled { background: #8aabcc; cursor: default; }
+    .hf-bar-wrap { width: 80px; height: 6px; background: #d8e4f0; border-radius: 3px; overflow: hidden; }
+    .hf-bar { height: 100%; background: #2e6da4; border-radius: 3px; transition: width .3s; width: 0%; }
+    .hf-state-label { font-size: .72rem; color: #4a6a8a; }
+
+    /* ── Layout ── */
+    .page-wrap { display: grid; grid-template-columns: 1fr 268px; min-height: calc(100vh - 110px); }
+    .main-col { padding: 28px 32px; min-width: 0; }
+    .sidebar { background: white; border-left: 1px solid #d8e4f0; padding: 20px 16px; overflow-y: auto; }
+
+    /* ── Question area ── */
+    .question-area { display: flex; gap: 10px; margin-bottom: 24px; }
+    #question-input { flex: 1; border: 1.5px solid #c2d8f0; border-radius: 10px; padding: 11px 16px; font-size: .95rem; font-family: inherit; color: #1a2a3a; background: white; outline: none; resize: vertical; transition: border-color .15s; min-height: 48px; }
+    #question-input:focus { border-color: #2e6da4; box-shadow: 0 0 0 3px rgba(46,109,164,.1); }
+    #ask-btn { background: linear-gradient(135deg, #1a5a8a 0%, #2e6da4 100%); color: white; border: none; border-radius: 10px; padding: 11px 22px; font-size: .92rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: opacity .15s; align-self: flex-start; }
+    #ask-btn:hover { opacity: .9; }
+    #ask-btn:disabled { opacity: .55; cursor: default; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4); border-top-color: white; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Results ── */
+    #results { display: none; }
+    #results.visible { display: block; }
+
+    .meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .meta-badge { background: #e8f2fc; color: #2e6da4; border-radius: 12px; padding: 3px 12px; font-size: .74rem; font-weight: 600; }
+    .meta-badge.green  { background: #e6f4ea; color: #1e7c3a; }
+    .meta-badge.orange { background: #fef3e8; color: #c07000; }
+    .meta-badge.purple { background: #f0e8fc; color: #6a2aac; }
+
+    .result-card { background: white; border: 1px solid #d8e4f0; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .result-card h3 { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #5a7a9a; margin-bottom: 12px; }
+    .answer-text { font-size: .92rem; line-height: 1.75; color: #2a3a4a; white-space: pre-wrap; word-break: break-word; }
+    .source-cite { color: #2e6da4; font-size: .82rem; font-style: italic; }
+
+    .label-bar { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f0f4f8; flex-wrap: wrap; }
+    .label-bar > span { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #8a9aaa; }
+    .label-btn { border: none; border-radius: 8px; padding: 5px 14px; font-size: .78rem; font-weight: 700; cursor: pointer; transition: all .15s; }
+    .label-btn.correct      { background: #d4edda; color: #155724; }
+    .label-btn.partial      { background: #fff3cd; color: #856404; }
+    .label-btn.incorrect    { background: #f8d7da; color: #721c24; }
+    .label-btn.hallucinated { background: #e2d5f8; color: #4a1a7c; }
+    .label-btn:hover { filter: brightness(.9); transform: translateY(-1px); }
+    .label-btn.saved { outline: 2px solid currentColor; outline-offset: 2px; }
+    #label-status { font-size: .74rem; color: #1e7c3a; font-weight: 600; }
+
+    .sources-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .source-tag { background: #f0f4f8; border: 1px solid #d8e4f0; border-radius: 6px; padding: 3px 10px; font-size: .78rem; color: #4a6a8a; font-family: "Courier New", monospace; }
+
+    .chunk-card { background: #f7fafd; border: 1px solid #e0eaf4; border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; }
+    .chunk-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 8px; }
+    .chunk-id-meta { flex-shrink: 0; }
+    .chunk-id { font-family: "Courier New", monospace; font-size: .8rem; color: #2e6da4; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+    .chunk-id:hover { color: #1a5a8a; }
+    .chunk-meta { font-size: .72rem; color: #8a9aaa; margin-top: 2px; }
+    .score-col { flex: 1; }
+    .score-label { font-size: .72rem; font-weight: 700; color: #4a6a8a; margin-bottom: 3px; }
+    .score-bar-track { height: 6px; background: #e0eaf4; border-radius: 3px; overflow: hidden; }
+    .score-bar { height: 100%; background: linear-gradient(90deg, #2e6da4, #56adef); border-radius: 3px; }
+    .chunk-text-preview { font-size: .79rem; color: #5a7a9a; line-height: 1.6; }
+
+    .trace-panel { background: #0d1b2a; border-radius: 10px; padding: 14px 18px; font-family: "Courier New", monospace; font-size: .77rem; color: #5a8aaa; line-height: 2.2; }
+    .tr-ok  { color: #56d364; }
+    .tr-key { color: #ffd080; }
+    .tr-val { color: #7ec8e3; }
+
+    /* ── Modal ── */
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(10,20,40,.65); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal-box { background: white; border-radius: 14px; padding: 28px 32px; max-width: 620px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.35); position: relative; }
+    .modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #8a9aaa; line-height: 1; }
+    .modal-close:hover { color: #2e6da4; }
+    .modal-chunk-id { font-family: "Courier New", monospace; font-size: .9rem; font-weight: 700; color: #2e6da4; margin-bottom: 6px; }
+    .modal-meta { font-size: .78rem; color: #8a9aaa; margin-bottom: 14px; }
+    .modal-text { font-size: .88rem; line-height: 1.75; color: #2a3a4a; white-space: pre-wrap; border-top: 1px solid #f0f4f8; padding-top: 14px; }
+
+    /* ── Sidebar ── */
+    .sidebar h3 { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #5a7a9a; margin-bottom: 10px; }
+    .sample-btn { display: block; width: 100%; text-align: left; background: #f7fafd; border: 1px solid #e0eaf4; border-radius: 8px; padding: 9px 12px; font-size: .79rem; color: #2a3a5a; cursor: pointer; margin-bottom: 6px; line-height: 1.45; transition: all .15s; font-family: inherit; }
+    .sample-btn:hover { background: #e8f2fc; border-color: #2e6da4; color: #2e6da4; }
+    .sidebar-section { margin-bottom: 24px; }
+
+    .error-card { background: #fdf0f0; border: 1px solid #f5c6cb; border-radius: 10px; padding: 16px 20px; color: #721c24; font-size: .88rem; line-height: 1.7; }
+
+    /* ── Dark-toggle button ── */
+    #dark-toggle { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: 5px 11px; font-size: .95rem; cursor: pointer; color: white; transition: background .18s; flex-shrink: 0; margin-left: 6px; }
+    #dark-toggle:hover { background: rgba(255,255,255,.26); }
+
+    /* ── Dark mode ── */
+    html.dark body { background: #0e1a28; color: #c8d8e8; }
+    html.dark header { background: linear-gradient(135deg, #0d2236, #1a4a7a); }
+    html.dark .controls-bar { background: #111e2d; border-color: #1e3a52; }
+    html.dark .sidebar { background: #111e2d; border-color: #1e3a52; }
+    html.dark .result-card { background: #162234; border-color: #1e3a52; }
+    html.dark .result-card h3 { color: #6a8aaa; }
+    html.dark .answer-text { color: #c8d8e8; }
+    html.dark .chunk-card { background: #162234; border-color: #1e3a52; }
+    html.dark .chunk-id { color: #5abedc; }
+    html.dark .chunk-text-preview, html.dark .chunk-meta, html.dark .score-label { color: #6a8aaa; }
+    html.dark .score-bar-track { background: #1e3a52; }
+    html.dark #question-input { background: #111e2d; border-color: #1e3a52; color: #c8d8e8; }
+    html.dark #question-input:focus { border-color: #5abedc; }
+    html.dark #model-select { background-color: #111e2d; border-color: #1e3a52; color: #c8d8e8; }
+    html.dark #model-select option, html.dark #model-select optgroup { background: #111e2d; }
+    html.dark .radio-btn label { background: #111e2d; border-color: #1e3a52; color: #8aaac8; }
+    html.dark .radio-btn input:checked + label { background: #2e6da4; border-color: #5abedc; }
+    html.dark .ctrl-label { color: #5a7a9a; }
+    html.dark .meta-badge { background: #0d2236; color: #5abedc; }
+    html.dark .meta-badge.green  { background: #0a2218; color: #4dc878; }
+    html.dark .meta-badge.orange { background: #281800; color: #e0a040; }
+    html.dark .meta-badge.purple { background: #1a0d30; color: #a07adc; }
+    html.dark .source-tag { background: #111e2d; border-color: #1e3a52; color: #8aaac8; }
+    html.dark .label-bar { border-top-color: #1e3a52; }
+    html.dark .label-bar > span { color: #5a7a9a; }
+    html.dark .modal-box { background: #162234; }
+    html.dark .modal-close { color: #5a7a9a; }
+    html.dark .modal-text { border-color: #1e3a52; color: #a0b8cc; }
+    html.dark .modal-meta, html.dark .modal-chunk-id { color: #5abedc; }
+    html.dark .sample-btn { background: #162234; border-color: #1e3a52; color: #8aaac8; }
+    html.dark .sample-btn:hover { background: #0d2236; border-color: #5abedc; color: #5abedc; }
+    html.dark .sidebar h3 { color: #5a7a9a; }
+    html.dark .hf-pill { background: #0d2236; border-color: #1e3a52; }
+    html.dark .hf-state-label { color: #6a8aaa; }
+    html.dark .hf-bar-wrap { background: #1e3a52; }
+    html.dark .error-card { background: #200a10; border-color: #6a1a28; color: #e07080; }
+    html.dark ::-webkit-scrollbar-track { background: #0e1a28; }
+    html.dark ::-webkit-scrollbar-thumb { background: #1e3a52; }
+  </style>
+  <script src="/static/darkmode.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="logo">🩺</div>
+  <div>
+    <h1>Pediatric RAG — Live Demo</h1>
+    <p>Kliegman (371 pp.) + AAP Case-Based Guide (785 pp.) &nbsp;·&nbsp; all-MiniLM-L6-v2</p>
+  </div>
+  <div class="header-badge">Mid-Course Assignment</div>
+  <nav>
+    <a href="/build">1. Rebuild</a>
+    <a href="/" class="active">2. Demo</a>
+    <a href="/eval">3. Eval</a>
+    <a href="/ablation">4. Ablation</a>
+    <a href="/goldset">5. Gold Set</a>
+    <a href="/help">Help</a>
+    <a href="/qa">Q&amp;A</a>
+  </nav>
+  <button id="dark-toggle" onclick="toggleDark()" title="Switch to dark mode">🌙</button>
+</header>
+
+<!-- Controls bar -->
+<div class="controls-bar">
+  <div class="ctrl-group">
+    <span class="ctrl-label">Model</span>
+    <select id="model-select" onchange="onModelChange()">
+      <optgroup label="☁ Cloud — Anthropic">
+        <option value="claude-haiku-4-5-20251001" selected>Claude Haiku 4.5 (fast)</option>
+        <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (better)</option>
+        <option value="claude-opus-4-7">Claude Opus 4.7 (best)</option>
+      </optgroup>
+      <optgroup label="🖥 Local — HuggingFace">
+        <option value="google/flan-t5-base">Flan-T5 Base (~300 MB)</option>
+        <option value="google/flan-t5-large">Flan-T5 Large (~750 MB)</option>
+        <option value="HuggingFaceH4/zephyr-7b-beta">Zephyr-7B (~14 GB)</option>
+        <option value="mistralai/Mistral-7B-Instruct-v0.2">Mistral-7B (~14 GB)</option>
+      </optgroup>
+    </select>
+  </div>
+
+  <div class="ctrl-group">
+    <span class="ctrl-label">Retrieval Strategy</span>
+    <div class="radio-group">
+      <div class="radio-btn"><input type="radio" name="strategy" id="s-fixed" value="fixed" checked><label for="s-fixed">Fixed-size</label></div>
+      <div class="radio-btn"><input type="radio" name="strategy" id="s-para"  value="paragraph"><label for="s-para">Paragraph</label></div>
+    </div>
+  </div>
+
+  <div class="ctrl-group">
+    <span class="ctrl-label">Top-k &nbsp;<span class="k-display" id="k-val">5</span></span>
+    <input type="range" id="k-slider" min="1" max="10" value="5" oninput="document.getElementById('k-val').textContent=this.value">
+  </div>
+
+  <div class="hf-pill" id="hf-pill">
+    <span class="hf-state-label" id="hf-state">Not loaded</span>
+    <div class="hf-bar-wrap"><div class="hf-bar" id="hf-bar"></div></div>
+    <button class="hf-download-btn" id="hf-btn" onclick="startHfDownload()">Download</button>
+  </div>
+</div>
+
+<!-- Page body -->
+<div class="page-wrap">
+
+  <div class="main-col">
+
+    <div class="question-area">
+      <textarea id="question-input" rows="2" placeholder="Ask a clinical question about pediatrics… (Enter to submit)"></textarea>
+      <button id="ask-btn" onclick="ask()">Ask ›</button>
+    </div>
+
+    <div id="results">
+
+      <div class="meta-row" id="meta-row"></div>
+
+      <div class="result-card" id="answer-card" style="display:none">
+        <h3>Generated Answer</h3>
+        <div class="answer-text" id="answer-text"></div>
+        <div class="label-bar">
+          <span>Label this answer:</span>
+          <button class="label-btn correct"      onclick="saveLabel('correct',event)">✓ Correct</button>
+          <button class="label-btn partial"      onclick="saveLabel('partial',event)">~ Partial</button>
+          <button class="label-btn incorrect"    onclick="saveLabel('incorrect',event)">✗ Incorrect</button>
+          <button class="label-btn hallucinated" onclick="saveLabel('hallucinated',event)">⚠ Hallucinated</button>
+          <span id="label-status"></span>
+        </div>
+      </div>
+
+      <div class="result-card" id="sources-card" style="display:none">
+        <h3>Cited Sources</h3>
+        <div class="sources-row" id="sources-row"></div>
+      </div>
+
+      <div class="result-card" id="chunks-card" style="display:none">
+        <h3>Retrieved Chunks</h3>
+        <div id="chunks-list"></div>
+      </div>
+
+      <div class="result-card" id="trace-card" style="display:none">
+        <h3>Pipeline Trace</h3>
+        <div class="trace-panel" id="trace-panel"></div>
+      </div>
+
+      <div class="error-card" id="error-card" style="display:none"></div>
+
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h3>📋 Sample Questions</h3>
+      <button class="sample-btn" onclick="fillAndAsk(this)">What are the discharge criteria for a child with febrile seizure?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)">What is BRUE and what are the criteria for low-risk classification?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)">What are the bacterial causes of acute gastroenteritis?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)">What is the most urgent diagnosis to rule out in scrotal pain?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)">What monitoring is recommended for higher-risk BRUE infants?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)">What does the Ballard score assess?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)">What CDC hotline is mentioned in the asthma case?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)">What immune disorders can cause hemoptysis in children?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)">What counseling should asthmatic families receive about secondhand smoke?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)">What physical exam should be done on a newborn with respiratory distress?</button>
+    </div>
+  </aside>
+
+</div>
+
+<!-- Chunk modal -->
+<div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-chunk-id" id="modal-chunk-id"></div>
+    <div class="modal-meta"     id="modal-meta"></div>
+    <div class="modal-text"     id="modal-text"></div>
+  </div>
+</div>
+
+<script>
+  let _lastQuestion = "";
+  let _lastIdx      = null;
+  let _hfPollTimer  = null;
+  const HF_MODELS   = new Set(["google/flan-t5-base","google/flan-t5-large",
+                                "HuggingFaceH4/zephyr-7b-beta","mistralai/Mistral-7B-Instruct-v0.2"]);
+
+  // Auto-resize textarea
+  const qi = document.getElementById("question-input");
+  qi.addEventListener("input", () => { qi.style.height="auto"; qi.style.height=qi.scrollHeight+"px"; });
+  qi.addEventListener("keydown", e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();ask();} });
+
+  async function ask() {
+    const q = qi.value.trim();
+    if (!q) return;
+    _lastQuestion = q; _lastIdx = null;
+
+    const btn = document.getElementById("ask-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Asking…';
+
+    document.getElementById("results").style.display = "block";
+    ["answer-card","sources-card","chunks-card","trace-card"].forEach(id => document.getElementById(id).style.display="none");
+    document.getElementById("error-card").style.display = "none";
+    document.getElementById("meta-row").innerHTML = "";
+    document.getElementById("label-status").textContent = "";
+    document.querySelectorAll(".label-btn").forEach(b => b.classList.remove("saved"));
+
+    const model    = document.getElementById("model-select").value;
+    const strategy = document.querySelector('input[name="strategy"]:checked').value;
+    const k        = parseInt(document.getElementById("k-slider").value);
+
+    try {
+      const resp = await fetch("/ask", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({question:q, strategy, k, model})
+      });
+      const data = await resp.json();
+      if (!resp.ok || data.error) throw new Error(data.error || "Server error");
+      renderResult(data, strategy, k);
+    } catch(err) {
+      const ec = document.getElementById("error-card");
+      ec.style.display = "block";
+      ec.textContent = "Error: " + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Ask ›";
+    }
+  }
+
+  function fillAndAsk(btn) {
+    qi.value = btn.textContent.trim();
+    qi.style.height = "auto"; qi.style.height = qi.scrollHeight+"px";
+    ask();
+  }
+
+  function renderResult(data, strategy, k) {
+    const lat = data.latency ?? 0;
+    const latCls = lat < 5 ? "green" : lat < 15 ? "orange" : "purple";
+    const srcCount = (data.sources||[]).length;
+    document.getElementById("meta-row").innerHTML =
+      `<span class="meta-badge">${esc(data.model||"")}</span>` +
+      `<span class="meta-badge">${strategy} · k=${k}</span>` +
+      `<span class="meta-badge ${latCls}">${lat}s</span>` +
+      `<span class="meta-badge ${srcCount?"green":"orange"}">${srcCount} source${srcCount!==1?"s":""} cited</span>`;
+
+    // Answer
+    document.getElementById("answer-text").innerHTML =
+      esc(data.answer||"(no answer)").replace(/\[Source:[^\]]+\]/g,
+        m=>`<span class="source-cite">${m}</span>`);
+    document.getElementById("answer-card").style.display = "block";
+
+    // Sources
+    const sr = document.getElementById("sources-row");
+    sr.innerHTML = (data.sources||[]).map(s=>`<span class="source-tag">${esc(s)}</span>`).join("");
+    document.getElementById("sources-card").style.display = sr.innerHTML ? "block" : "none";
+
+    // Chunks
+    const cl = document.getElementById("chunks-list");
+    cl.innerHTML = (data.retrieved_chunks||[]).map(c => {
+      const sc  = c.score||0;
+      const m   = c.metadata||{};
+      const pct = Math.round(sc*100);
+      return `<div class="chunk-card">
+        <div class="chunk-header">
+          <div class="chunk-id-meta">
+            <div class="chunk-id" onclick="showChunk('${esc(c.chunk_id)}')">${esc(c.chunk_id)}</div>
+            <div class="chunk-meta">${esc(m.source||"")} · p.${m.page||"?"}</div>
+          </div>
+          <div class="score-col">
+            <div class="score-label">Score: ${sc.toFixed(3)}</div>
+            <div class="score-bar-track"><div class="score-bar" style="width:${pct}%"></div></div>
+          </div>
+        </div>
+        <div class="chunk-text-preview">${esc((c.text||"").slice(0,200))}…</div>
+      </div>`;
+    }).join("");
+    document.getElementById("chunks-card").style.display = cl.innerHTML ? "block" : "none";
+
+    // Trace
+    const t = data._timings||{};
+    document.getElementById("trace-panel").innerHTML =
+      `<span class="tr-ok">✓</span> <span class="tr-key">embed + retrieve </span> <span class="tr-val">${t.embed_retrieve_ms??"–"} ms</span>\n` +
+      `<span class="tr-ok">✓</span> <span class="tr-key">generate        </span> <span class="tr-val">${t.generate_ms??"–"} ms</span>\n` +
+      `<span class="tr-ok">✓</span> <span class="tr-key">total latency   </span> <span class="tr-val">${lat}s</span>`;
+    document.getElementById("trace-card").style.display = "block";
+  }
+
+  async function saveLabel(label, ev) {
+    document.querySelectorAll(".label-btn").forEach(b=>b.classList.remove("saved"));
+    ev.target.classList.add("saved");
+    const st = document.getElementById("label-status");
+    st.textContent = "Saving…";
+    try {
+      await fetch("/eval/label",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({idx:_lastIdx??Date.now(),label,question:_lastQuestion})});
+      st.textContent = "✓ Saved";
+      setTimeout(()=>{st.textContent="";},2500);
+    } catch { st.textContent = "Save failed"; }
+  }
+
+  async function showChunk(id) {
+    document.getElementById("modal-chunk-id").textContent = id;
+    document.getElementById("modal-meta").textContent = "Loading…";
+    document.getElementById("modal-text").textContent = "";
+    document.getElementById("modal").classList.add("open");
+    try {
+      const c = await (await fetch(`/chunk/${encodeURIComponent(id)}`)).json();
+      const m = c.metadata||{};
+      document.getElementById("modal-meta").textContent =
+        `Source: ${m.source||"—"}  ·  Page: ${m.page||"—"}  ·  Strategy: ${m.strategy||"—"}`;
+      document.getElementById("modal-text").textContent = c.text||"(no text)";
+    } catch { document.getElementById("modal-meta").textContent = "Error loading chunk"; }
+  }
+  function closeModal() { document.getElementById("modal").classList.remove("open"); }
+  document.addEventListener("keydown", e => { if(e.key==="Escape") closeModal(); });
+
+  function onModelChange() {
+    const model = document.getElementById("model-select").value;
+    const pill  = document.getElementById("hf-pill");
+    if (HF_MODELS.has(model)) { pill.classList.add("visible"); pollHfStatus(model); }
+    else { pill.classList.remove("visible"); clearInterval(_hfPollTimer); }
+  }
+
+  async function startHfDownload() {
+    const model = document.getElementById("model-select").value;
+    document.getElementById("hf-btn").disabled = true;
+    await fetch("/hf/load",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model_id:model})});
+    pollHfStatus(model);
+  }
+
+  function pollHfStatus(model) {
+    clearInterval(_hfPollTimer);
+    _hfPollTimer = setInterval(async () => {
+      try {
+        const all = await (await fetch("/hf/status")).json();
+        const s = all[model]||{};
+        document.getElementById("hf-state").textContent = s.detail||s.state||"Not loaded";
+        document.getElementById("hf-bar").style.width = (s.progress||0)+"%";
+        const btn = document.getElementById("hf-btn");
+        btn.disabled = ["downloading","loading","ready"].includes(s.state);
+        btn.textContent = s.state==="ready" ? "Ready ✓" : "Download";
+        if (s.state==="ready"||s.state==="error") clearInterval(_hfPollTimer);
+      } catch(e) {}
+    }, 1500);
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+</script>
+</body>
+</html>

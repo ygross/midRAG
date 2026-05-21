@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Evaluation — Pediatric RAG</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Arial, sans-serif; background: #f0f4f8; color: #1a2a3a; min-height: 100vh; }
+
+    /* Header */
+    header { background: linear-gradient(135deg, #1a3a5c 0%, #2e6da4 100%); color: white; padding: 16px 28px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    header .logo { font-size: 1.8rem; line-height: 1; }
+    header h1    { font-size: 1.25rem; font-weight: 700; }
+    header p     { font-size: .75rem; opacity: .75; margin-top: 2px; }
+    .header-badge { margin-left: auto; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: 4px 14px; font-size: .72rem; white-space: nowrap; }
+    nav { display: flex; gap: 6px; margin-left: 12px; }
+    nav a { color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; padding: 5px 14px; font-size: .8rem; text-decoration: none; background: rgba(255,255,255,.08); transition: background .15s; }
+    nav a:hover  { background: rgba(255,255,255,.18); color: white; }
+    nav a.active { background: rgba(255,255,255,.25); color: white; font-weight: 600; border-color: rgba(255,255,255,.4); }
+
+    /* Controls */
+    .controls-bar { background: #fff; border-bottom: 1px solid #d0dcec; padding: 14px 28px; display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; }
+    .ctrl-group   { display: flex; flex-direction: column; gap: 5px; }
+    .ctrl-label   { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #5a7a9a; }
+    select, input[type=number] { appearance: none; background: #f5f8fc; border: 1.5px solid #c2d8f0; border-radius: 8px; padding: 7px 12px; font-size: .85rem; color: #1a2a3a; outline: none; }
+    select { padding-right: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a7a9a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+    select:focus, input[type=number]:focus { border-color: #2e6da4; }
+    .seg-toggle { display: flex; border: 1.5px solid #c2d8f0; border-radius: 8px; overflow: hidden; }
+    .seg-toggle label { flex: 1; display: flex; align-items: center; justify-content: center; padding: 7px 14px; font-size: .82rem; cursor: pointer; background: #f5f8fc; color: #5a7a9a; transition: background .15s, color .15s; white-space: nowrap; user-select: none; }
+    .seg-toggle input { display: none; }
+    .seg-toggle input:checked + label { background: #2e6da4; color: white; font-weight: 600; }
+    .seg-toggle label:not(:last-child) { border-right: 1px solid #c2d8f0; }
+    .run-btn { background: #2e6da4; color: white; border: none; border-radius: 8px; padding: 9px 22px; font-size: .88rem; font-weight: 600; cursor: pointer; align-self: flex-end; transition: background .15s; white-space: nowrap; }
+    .run-btn:hover    { background: #1a5c93; }
+    .run-btn:disabled { background: #a0b8d0; cursor: default; }
+
+    /* Page layout */
+    .page { padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Summary cards */
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .sum-card { background: white; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,.07); padding: 14px 16px; text-align: center; }
+    .sum-card .val { font-size: 1.6rem; font-weight: 700; color: #2e6da4; }
+    .sum-card .lbl { font-size: .7rem; color: #6a8aaa; margin-top: 4px; text-transform: uppercase; letter-spacing: .05em; }
+    .sum-card.good .val { color: #1e7c3a; }
+    .sum-card.bad  .val { color: #c0392b; }
+
+    /* Progress */
+    .progress-wrap { background: #f0f4f8; border-radius: 8px; height: 10px; overflow: hidden; margin-top: 4px; }
+    .progress-bar  { height: 100%; background: linear-gradient(90deg, #2e6da4, #0e7c7b); border-radius: 8px; transition: width .4s ease; width: 0%; }
+    .progress-label { font-size: .72rem; color: #5a7a9a; margin-top: 4px; }
+
+    /* Results table */
+    .card { background: white; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.08); overflow: hidden; }
+    .card-header { padding: 11px 18px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; display: flex; align-items: center; gap: 8px; }
+    .card-body   { padding: 0; overflow-x: auto; }
+    .results-header  { background: #e8f2fc; color: #1a3a5c; }
+    .category-header { background: #e6f4ea; color: #1e5c2e; }
+    .labels-header   { background: #fef3e8; color: #7a4a00; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { background: #f5f8fc; padding: 9px 12px; font-weight: 700; text-align: left; color: #5a7a9a; border-bottom: 1px solid #d8e4f0; white-space: nowrap; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafd; }
+
+    .hit-yes { color: #1e7c3a; font-weight: 700; }
+    .hit-no  { color: #c0392b; font-weight: 700; }
+    .cat-chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .72rem; font-weight: 600; background: #e8f2fc; color: #1a3a5c; }
+    .cat-chip.factual    { background: #e8f2fc; color: #1a3a5c; }
+    .cat-chip.numerical  { background: #e6f4ea; color: #1e5c2e; }
+    .cat-chip.temporal   { background: #f0e8fc; color: #4a1a7c; }
+    .cat-chip.negation   { background: #fef3e8; color: #7a4a00; }
+    .cat-chip.comparison { background: #fde8ea; color: #7c1a2a; }
+
+    .answer-cell { max-width: 340px; white-space: normal; line-height: 1.4; }
+    .ref-cell    { max-width: 220px; white-space: normal; color: #5a7a9a; font-size: .75rem; line-height: 1.4; }
+
+    /* Label buttons */
+    .label-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+    .lbl-btn { border: none; border-radius: 6px; padding: 3px 8px; font-size: .7rem; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    .lbl-btn[data-lbl="correct"]   { background: #d4edda; color: #155724; }
+    .lbl-btn[data-lbl="partial"]   { background: #fff3cd; color: #856404; }
+    .lbl-btn[data-lbl="incorrect"] { background: #f8d7da; color: #721c24; }
+    .lbl-btn[data-lbl="hallucinated"] { background: #e2d5f8; color: #4a1a7c; }
+    .lbl-btn.active { outline: 2px solid #1a2a3a; }
+    .lbl-saved { font-size: .68rem; color: #1e7c3a; margin-top: 2px; }
+
+    /* Category table */
+    .cat-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .cat-table th { background: #f5f8fc; padding: 9px 14px; font-weight: 700; color: #5a7a9a; text-align: left; border-bottom: 1px solid #d8e4f0; }
+    .cat-table td { padding: 8px 14px; border-bottom: 1px solid #f0f4f8; }
+    .cat-table tr:last-child td { border-bottom: none; }
+    .hit-bar-wrap { width: 120px; background: #f0f4f8; border-radius: 4px; height: 8px; display: inline-block; overflow: hidden; vertical-align: middle; margin-right: 6px; }
+    .hit-bar { height: 100%; background: linear-gradient(90deg, #2e6da4, #0e7c7b); border-radius: 4px; transition: width .6s ease; }
+
+    /* Status bar */
+    .status-bar { display: none; background: #e8f2fc; border: 1px solid #b0cde8; border-radius: 8px; padding: 10px 14px; font-size: .82rem; color: #1a3a5c; display: flex; align-items: center; gap: 10px; }
+    .status-bar .spinner { width: 14px; height: 14px; border: 2px solid rgba(30,58,92,.2); border-top-color: #2e6da4; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Empty */
+    .empty { text-align: center; padding: 40px; color: #a0b8d0; font-size: .88rem; }
+
+    /* ── Tooltips ── */
+    [data-tooltip] { position: relative; cursor: help; }
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #1a2a3a; color: #ddeeff; padding: 8px 12px; border-radius: 8px;
+      font-size: .72rem; font-weight: 400; line-height: 1.5; white-space: normal;
+      width: max-content; max-width: 230px; z-index: 9999;
+      pointer-events: none; opacity: 0; transition: opacity .18s;
+      text-transform: none; letter-spacing: 0; box-shadow: 0 4px 14px rgba(0,0,0,.3);
+    }
+    [data-tooltip]::before {
+      content: ''; position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%);
+      border: 5px solid transparent; border-top-color: #1a2a3a;
+      z-index: 9999; pointer-events: none; opacity: 0; transition: opacity .18s;
+    }
+    [data-tooltip]:hover::after, [data-tooltip]:hover::before { opacity: 1; }
+    .tt { border-bottom: 1px dotted #8aabcc; }
+    #dark-toggle{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:5px 11px;font-size:.95rem;cursor:pointer;color:white;transition:background .18s;flex-shrink:0;margin-left:6px;}
+    #dark-toggle:hover{background:rgba(255,255,255,.26);}
+    html.dark body{background:#0e1a28;color:#c8d8e8;}
+    html.dark header{background:linear-gradient(135deg,#0d2236,#1a4a7a);}
+    html.dark .controls-bar,html.dark .eval-controls{background:#111e2d;border-color:#1e3a52;}
+    html.dark .card,html.dark .result-card{background:#162234;border-color:#1e3a52;}
+    html.dark h1,html.dark h2,html.dark h3,html.dark h4{color:#c8d8e8;}
+    html.dark p,html.dark li{color:#a0b8cc;}
+    html.dark label,html.dark .ctrl-label{color:#6a8aaa;}
+    html.dark th{background:#111e2d!important;color:#6a8aaa!important;border-color:#1e3a52!important;}
+    html.dark td{border-color:#1e3a52!important;color:#a0b8cc;}
+    html.dark input,html.dark select,html.dark textarea{background:#111e2d;border-color:#1e3a52;color:#c8d8e8;}
+    html.dark select option{background:#111e2d;}
+    html.dark code{background:#0d1b2a!important;border-color:#1e3a52!important;color:#5abedc!important;}
+    html.dark ::-webkit-scrollbar-track{background:#0e1a28;}html.dark ::-webkit-scrollbar-thumb{background:#1e3a52;}
+  </style>
+  <script src="/static/darkmode.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="logo">🩺</div>
+  <div>
+    <h1>Pediatric RAG — Evaluation Dashboard</h1>
+    <p>Hit@k · Precision@k · Per-category breakdown · Manual labeling</p>
+  </div>
+  <div class="header-badge">Mid-Course Assignment</div>
+  <nav>
+    <a href="/build">1. Rebuild</a>
+    <a href="/">2. Demo</a>
+    <a href="/eval" class="active">3. Eval</a>
+    <a href="/ablation">4. Ablation</a>
+    <a href="/goldset">5. Gold Set</a>
+    <a href="/help">Help</a>
+    <a href="/qa">Q&amp;A</a>
+  </nav>
+  <button id="dark-toggle" onclick="toggleDark()" title="Switch to dark mode">🌙</button>
+</header>
+
+<!-- Controls -->
+<div class="controls-bar">
+  <div class="ctrl-group">
+    <span class="ctrl-label"><span class="tt" data-tooltip="Chunking strategy: Fixed-size splits text into equal-length character blocks (default 400 chars, 50 overlap). Paragraph splits at natural paragraph boundaries.">Strategy</span></span>
+    <div class="seg-toggle">
+      <input type="radio" name="strategy" id="s-fixed" value="fixed" checked />
+      <label for="s-fixed">Fixed-size</label>
+      <input type="radio" name="strategy" id="s-para" value="paragraph" />
+      <label for="s-para">Paragraph</label>
+    </div>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label"><span class="tt" data-tooltip="Number of chunks retrieved per query. Higher k = more coverage but more noise and higher LLM token cost. Sweet spot for this corpus: 5.">Top-k</span></span>
+    <input type="number" id="k-inp" min="1" max="10" value="5" style="width:70px;" />
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">Questions limit</span>
+    <select id="limit-sel">
+      <option value="10">10 questions (fast test)</option>
+      <option value="20" selected>20 questions</option>
+      <option value="52">All 52 questions</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">Model</span>
+    <select id="model-sel">
+      <optgroup label="☁ Anthropic Cloud">
+        <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5</option>
+        <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+      </optgroup>
+      <optgroup label="💻 Local (HuggingFace)">
+        <option value="google/flan-t5-base">Flan-T5 Base</option>
+        <option value="google/flan-t5-large">Flan-T5 Large</option>
+      </optgroup>
+    </select>
+  </div>
+  <button class="run-btn" id="run-btn" onclick="runEval()">▶ Run Evaluation</button>
+</div>
+
+<div class="page">
+
+  <!-- Status -->
+  <div id="status-bar" class="status-bar" style="display:none;">
+    <div class="spinner"></div>
+    <span id="status-text">Initialising…</span>
+  </div>
+
+  <!-- Progress -->
+  <div id="progress-wrap" style="display:none;">
+    <div class="progress-wrap"><div class="progress-bar" id="prog-bar"></div></div>
+    <div class="progress-label" id="prog-label">0 / 0 questions</div>
+  </div>
+
+  <!-- Summary metrics -->
+  <div class="summary-grid" id="summary-row">
+    <div class="sum-card"><div class="val" id="s-hit">—</div><div class="lbl"><span class="tt" data-tooltip="Did at least one of the top-k retrieved chunks come from the correct source? Binary ✓/✗ per question, averaged over all questions. Target: &gt;75%.">Hit@k</span></div></div>
+    <div class="sum-card"><div class="val" id="s-prec">—</div><div class="lbl"><span class="tt" data-tooltip="Fraction of the k retrieved chunks that came from the correct source document. E.g. 3 of 5 correct → 60%. Measures retrieval quality. Target: &gt;70%.">Precision@k</span></div></div>
+    <div class="sum-card"><div class="val" id="s-lat">—</div><div class="lbl"><span class="tt" data-tooltip="Mean seconds from question submission to full answer received. The LLM API call dominates (~5–9 s for Claude Haiku). Retrieval itself takes ~10 ms.">Avg latency (s)</span></div></div>
+    <div class="sum-card"><div class="val" id="s-n">—</div><div class="lbl"><span class="tt" data-tooltip="Number of gold-set questions evaluated in this run. Use 10–20 for quick tests; run All 52 for a final report figure.">Questions run</span></div></div>
+  </div>
+
+  <!-- Per-category table -->
+  <div class="card">
+    <div class="card-header category-header">📊 Per-category Hit@k</div>
+    <div class="card-body">
+      <table class="cat-table">
+        <thead><tr><th>Category</th><th>Hit@k</th><th>n</th><th>Visualisation</th></tr></thead>
+        <tbody id="cat-tbody"><tr><td colspan="4" class="empty">Run evaluation to see breakdown</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Per-question results -->
+  <div class="card">
+    <div class="card-header results-header">📋 Per-question Results</div>
+    <div class="card-body">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Category</th>
+            <th>Question</th>
+            <th><span class="tt" data-tooltip="Did any of the top-k chunks come from the correct source? ✓ = hit, ✗ = miss.">Hit</span></th>
+            <th><span class="tt" data-tooltip="Fraction of the k retrieved chunks from the correct source for this question. E.g. 3/5 = 60%.">Prec.</span></th>
+            <th><span class="tt" data-tooltip="Seconds from submitting this question to receiving the answer.">Lat.</span></th>
+            <th>Answer (truncated)</th>
+            <th>Reference answer</th>
+            <th><span class="tt" data-tooltip="Your human judgement: Correct (fully grounded), Partial (mostly right), Incorrect (wrong), Hallucinated (not in retrieved chunks).">Label</span></th>
+          </tr>
+        </thead>
+        <tbody id="results-tbody"><tr><td colspan="9" class="empty">Run evaluation to see results</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Manual labels summary -->
+  <div class="card">
+    <div class="card-header labels-header">🏷 Saved Manual Labels</div>
+    <div class="card-body">
+      <table>
+        <thead><tr><th>#</th><th>Question</th><th>Label</th><th>Note</th></tr></thead>
+        <tbody id="labels-tbody"><tr><td colspan="4" class="empty">No labels saved yet</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let totalQ = 0, doneQ = 0;
+  let savedLabels = {};
+  let resultsData = [];   // store question+answer for labeling
+
+  /* ── Load existing labels on page load ── */
+  async function loadLabels() {
+    try {
+      const r = await fetch("/eval/labels");
+      savedLabels = await r.json();
+      renderLabelsTable();
+    } catch {}
+  }
+  loadLabels();
+
+  /* ── Run Evaluation ── */
+  async function runEval() {
+    const strategy = document.querySelector('input[name="strategy"]:checked').value;
+    const k        = parseInt(document.getElementById("k-inp").value) || 5;
+    const limit    = parseInt(document.getElementById("limit-sel").value);
+    const model    = document.getElementById("model-sel").value;
+
+    document.getElementById("run-btn").disabled = true;
+    document.getElementById("status-bar").style.display = "flex";
+    document.getElementById("progress-wrap").style.display = "block";
+    setStatus("Starting evaluation…");
+    document.getElementById("results-tbody").innerHTML = "";
+    document.getElementById("cat-tbody").innerHTML = "";
+    resultsData = [];
+    doneQ = 0; totalQ = 0;
+    setProg(0, "Starting…");
+    resetSummary();
+
+    // Start the eval run
+    const startResp = await fetch("/eval/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ strategy, k, limit, model })
+    });
+    if (!startResp.ok) {
+      const err = await startResp.json();
+      setStatus("Error: " + (err.error || "Unknown"));
+      document.getElementById("run-btn").disabled = false;
+      return;
+    }
+
+    // SSE stream
+    const es = new EventSource("/eval/stream");
+    es.onmessage = e => {
+      const raw = e.data;
+      if (raw === "__PING__") return;
+      if (raw === "__DONE__") {
+        es.close();
+        setStatus("Evaluation complete.");
+        document.getElementById("run-btn").disabled = false;
+        document.getElementById("status-bar").style.display = "none";
+        return;
+      }
+      try {
+        const msg = JSON.parse(raw);
+        if (msg.type === "start") {
+          totalQ = msg.n;
+          setStatus(`Running ${msg.n} questions (k=${msg.k}, ${msg.strategy})`);
+        } else if (msg.type === "result") {
+          doneQ++;
+          setProg(totalQ ? (doneQ / totalQ * 100) : 0, `${doneQ} / ${totalQ || "?"} questions`);
+          appendResult(msg);
+          resultsData.push(msg);
+        } else if (msg.type === "summary") {
+          renderSummary(msg);
+          renderCatTable(msg.categories);
+        }
+      } catch {}
+    };
+    es.onerror = () => {
+      es.close();
+      document.getElementById("run-btn").disabled = false;
+      setStatus("Stream error — check server.");
+    };
+  }
+
+  function setStatus(txt) {
+    document.getElementById("status-text").textContent = txt;
+  }
+
+  function setProg(pct, label) {
+    document.getElementById("prog-bar").style.width = pct + "%";
+    document.getElementById("prog-label").textContent = label;
+  }
+
+  function resetSummary() {
+    ["s-hit","s-prec","s-lat","s-n"].forEach(id => document.getElementById(id).textContent = "—");
+  }
+
+  function renderSummary(msg) {
+    const hitPct  = (msg.hit_at_k * 100).toFixed(1) + "%";
+    const precPct = (msg.precision * 100).toFixed(1) + "%";
+    const hitEl  = document.getElementById("s-hit");
+    const precEl = document.getElementById("s-prec");
+    hitEl.textContent  = hitPct;
+    precEl.textContent = precPct;
+    document.getElementById("s-lat").textContent = msg.latency + " s";
+    document.getElementById("s-n").textContent   = msg.n;
+    hitEl.parentElement.className  = "sum-card " + (msg.hit_at_k >= .7 ? "good" : "bad");
+    precEl.parentElement.className = "sum-card " + (msg.precision >= .7 ? "good" : "bad");
+  }
+
+  function renderCatTable(cats) {
+    const tbody = document.getElementById("cat-tbody");
+    tbody.innerHTML = "";
+    Object.entries(cats).sort((a,b) => b[1].hit - a[1].hit).forEach(([cat, info]) => {
+      const pct = (info.hit * 100).toFixed(0);
+      tbody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td><span class="cat-chip ${cat}">${cat}</span></td>
+          <td><strong>${(info.hit*100).toFixed(1)}%</strong></td>
+          <td>${info.n}</td>
+          <td>
+            <span class="hit-bar-wrap"><span class="hit-bar" style="width:${pct}%"></span></span>
+            ${pct}%
+          </td>
+        </tr>`);
+    });
+  }
+
+  function appendResult(msg) {
+    const tbody = document.getElementById("results-tbody");
+    const idx   = msg.idx;
+    const lbl   = savedLabels[String(idx)];
+    const truncAns = (msg.answer || "").replace(/\n/g, " ").slice(0, 120) + (msg.answer?.length > 120 ? "…" : "");
+    const truncRef = (msg.ref_answer || "").slice(0, 80) + (msg.ref_answer?.length > 80 ? "…" : "");
+    const row = document.createElement("tr");
+    row.id = `row-${idx}`;
+    row.innerHTML = `
+      <td>${idx + 1}</td>
+      <td><span class="cat-chip ${msg.category}">${msg.category}</span></td>
+      <td style="max-width:200px;white-space:normal;line-height:1.4;">${esc(msg.question)}</td>
+      <td class="${msg.hit ? 'hit-yes' : 'hit-no'}">${msg.hit ? "✓" : "✗"}</td>
+      <td>${(msg.precision*100).toFixed(0)}%</td>
+      <td>${msg.latency}s</td>
+      <td class="answer-cell" title="${esc(msg.answer)}">${esc(truncAns)}</td>
+      <td class="ref-cell">${esc(truncRef)}</td>
+      <td id="lbl-cell-${idx}"></td>`;
+    tbody.appendChild(row);
+    renderLabelCell(idx, msg.question);
+  }
+
+  function renderLabelCell(idx, question) {
+    const cell = document.getElementById(`lbl-cell-${idx}`);
+    if (!cell) return;
+    const lbl = savedLabels[String(idx)];
+    cell.innerHTML = `
+      <div class="label-btns">
+        <button class="lbl-btn ${lbl?.label==='correct'?'active':''}" data-lbl="correct" onclick="saveLabel(${idx}, 'correct', this)">✓ Correct</button>
+        <button class="lbl-btn ${lbl?.label==='partial'?'active':''}" data-lbl="partial" onclick="saveLabel(${idx}, 'partial', this)">~ Partial</button>
+        <button class="lbl-btn ${lbl?.label==='incorrect'?'active':''}" data-lbl="incorrect" onclick="saveLabel(${idx}, 'incorrect', this)">✗ Incorrect</button>
+        <button class="lbl-btn ${lbl?.label==='hallucinated'?'active':''}" data-lbl="hallucinated" onclick="saveLabel(${idx}, 'hallucinated', this)">⚠ Halluc.</button>
+      </div>
+      ${lbl ? `<div class="lbl-saved">Saved: ${lbl.label}</div>` : ""}`;
+  }
+
+  async function saveLabel(idx, label, btn) {
+    const question = resultsData[idx]?.question || "";
+    try {
+      await fetch("/eval/label", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idx, label, question })
+      });
+      savedLabels[String(idx)] = { label, question };
+      renderLabelCell(idx, question);
+      renderLabelsTable();
+    } catch (e) { alert("Failed to save label: " + e); }
+  }
+
+  function renderLabelsTable() {
+    const tbody = document.getElementById("labels-tbody");
+    const keys  = Object.keys(savedLabels);
+    if (!keys.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty">No labels saved yet</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = keys.sort((a,b)=>+a-+b).map(k => {
+      const l = savedLabels[k];
+      return `<tr><td>${+k+1}</td><td>${esc(l.question||"")}</td>
+              <td><span class="lbl-btn" data-lbl="${l.label}" style="pointer-events:none;display:inline-block;">${l.label}</span></td>
+              <td>${esc(l.note||"")}</td></tr>`;
+    }).join("");
+  }
+
+  function esc(s) {
+    return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  let _traceOpen = false;
+  function toggleTrace() {
+    _traceOpen = !_traceOpen;
+    document.getElementById("trace-body").style.display = _traceOpen ? "grid" : "none";
+    document.getElementById("trace-caret").classList.toggle("open", _traceOpen);
+  }
+</script>
+
+<style>
+  .trace-panel{font-family:"Courier New",monospace;background:#0d1b2a;border-top:2px solid #1e5c8a;}
+  .trace-hdr{display:flex;align-items:center;gap:10px;padding:10px 24px;cursor:pointer;background:#0f2030;user-select:none;transition:background .15s;}
+  .trace-hdr:hover{background:#132840;}
+  .trace-pill{background:#1e4a6e;color:#7ec8e3;border-radius:12px;padding:3px 12px;font-family:"Segoe UI",sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.06em;white-space:nowrap;}
+  .trace-hdr-sub{font-size:.72rem;color:#3a6a8a;flex:1;font-family:"Segoe UI",sans-serif;}
+  .trace-caret{color:#3a6a8a;transition:transform .2s;}
+  .trace-caret.open{transform:rotate(90deg);}
+  .trace-body{display:grid;grid-template-columns:1fr 420px;max-height:360px;}
+  @media(max-width:860px){.trace-body{grid-template-columns:1fr;}}
+  .trace-log-section{padding:14px 22px;border-right:1px solid #1e3a52;overflow-y:auto;}
+  .trace-explain-section{padding:14px 22px;font-family:"Segoe UI",Arial,sans-serif;overflow-y:auto;background:#0f1e2e;}
+  .trace-section-title{font-size:.58rem;font-weight:700;letter-spacing:.14em;color:#1e5a8a;margin-bottom:10px;font-family:"Segoe UI",sans-serif;}
+  .explain-step{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #172a3a;}
+  .explain-step:last-child{border-bottom:none;}
+  .explain-num{background:#1a3e5c;color:#4abedc;border-radius:50%;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;margin-top:1px;font-family:"Segoe UI",sans-serif;flex-shrink:0;}
+  .explain-title{font-weight:700;color:#6ab8d8;font-size:.78rem;margin-bottom:2px;}
+  .explain-desc{color:#4a7a9a;line-height:1.5;font-size:.73rem;}
+  .explain-code{display:inline-block;background:#152638;border-radius:3px;padding:0 6px;color:#ffd080;font-size:.7rem;font-family:"Courier New",monospace;}
+</style>
+<div class="trace-panel" id="trace-panel">
+  <div class="trace-hdr" onclick="toggleTrace()">
+    <span class="trace-pill">🔬 Pipeline Trace</span>
+    <span class="trace-hdr-sub">— how evaluation metrics are computed</span>
+    <span class="trace-caret" id="trace-caret">▶</span>
+  </div>
+  <div class="trace-body" id="trace-body" style="display:none;">
+
+    <div class="trace-log-section">
+      <div class="trace-section-title">EVALUATION LOOP</div>
+      <div style="font-size:.73rem;color:#4a8aaa;line-height:2.2;">
+        <div><span style="color:#ffd080;">for</span> question in gold_set (50 Qs):</div>
+        <div style="padding-left:18px;"><span style="color:#ffd080;">retrieved</span> = retrieve(q, k=k, strategy=s)</div>
+        <div style="padding-left:18px;"><span style="color:#ffd080;">hit</span> &nbsp;&nbsp;&nbsp;&nbsp;= chunk_id_overlap OR same-page ±2</div>
+        <div style="padding-left:18px;"><span style="color:#ffd080;">prec</span> &nbsp;&nbsp;&nbsp;= correct_chunks / k</div>
+        <div style="padding-left:18px;"><span style="color:#ffd080;">answer</span> &nbsp;= generate(q, retrieved, model)</div>
+        <div style="padding-left:18px;"><span style="color:#ffd080;">lat</span> &nbsp;&nbsp;&nbsp;&nbsp;= end_time − start_time</div>
+        <div style="margin-top:8px;color:#2a6a3a;">Hit@k = mean(hits) · Prec@k = mean(precs)</div>
+      </div>
+    </div>
+
+    <div class="trace-explain-section">
+      <div class="trace-section-title">METRIC DEFINITIONS</div>
+      <div class="explain-step">
+        <div class="explain-num">H</div>
+        <div class="explain-body">
+          <div class="explain-title">Hit@k — Retrieval recall proxy</div>
+          <div class="explain-desc">1 if ANY of the top-k retrieved chunks came from the correct source (exact chunk_id match OR same document within ±2 pages of the gold page). 0 otherwise. Averaged over all questions.</div>
+        </div>
+      </div>
+      <div class="explain-step">
+        <div class="explain-num">P</div>
+        <div class="explain-body">
+          <div class="explain-title">Precision@k — Retrieval quality</div>
+          <div class="explain-desc">Fraction of the k retrieved chunks that came from the correct source document. <span class="explain-code">Prec@5 = 3/5 = 0.60</span> means 3 of 5 chunks were relevant.</div>
+        </div>
+      </div>
+      <div class="explain-step">
+        <div class="explain-num">L</div>
+        <div class="explain-body">
+          <div class="explain-title">Latency — End-to-end time</div>
+          <div class="explain-desc">Wall-clock time from question receipt to answer returned. Includes embedding (~8ms), vector search (&lt;5ms), and LLM generation (0.5–3s depending on model).</div>
+        </div>
+      </div>
+      <div class="explain-step">
+        <div class="explain-num">★</div>
+        <div class="explain-body">
+          <div class="explain-title">Gold set — Ground truth</div>
+          <div class="explain-desc">50 questions hand-written across 5 categories (factual 20, numerical 10, temporal 5, negation 8, comparison 7) with <span class="explain-code">must_cite_chunk_ids</span> specifying the correct source chunks.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

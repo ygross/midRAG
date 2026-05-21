@@ -1,0 +1,52 @@
+{
+  "0": {
+    "label": "correct",
+    "question": "What are the discharge criteria for a child with febrile seizure?",
+    "note": "Answer correctly listed all 4 discharge criteria from AAP p.251. Citation [Source: aap_p0251_fixed_000] was accurate."
+  },
+  "1": {
+    "label": "correct",
+    "question": "What physical examination components should be performed on a newborn with respiratory distress?",
+    "note": "All components listed correctly including Ballard score and anthropometric measurements. Source citation accurate."
+  },
+  "2": {
+    "label": "partial",
+    "question": "What is the Ballard score used to assess?",
+    "note": "Correctly stated gestational age assessment but added unretrieved detail about scoring components. Minor hallucination from parametric memory."
+  },
+  "3": {
+    "label": "correct",
+    "question": "What does the acronym BRUE stand for?",
+    "note": "Correct expansion of acronym with accurate citation. Concise and grounded in retrieved chunk."
+  },
+  "4": {
+    "label": "partial",
+    "question": "What monitoring is recommended for higher-risk BRUE infants?",
+    "note": "Correctly mentioned pulse oximetry for 4 hours and ECG. Missed social worker consultation and feeding therapist — those appeared in a neighboring chunk not retrieved."
+  },
+  "5": {
+    "label": "correct",
+    "question": "What is the CDC hotline for smoking cessation mentioned in the asthma case?",
+    "note": "Exact number (1-800-QUIT-NOW) retrieved and cited correctly. Perfect factual retrieval."
+  },
+  "6": {
+    "label": "partial",
+    "question": "What should families of asthmatic children be counseled about regarding secondhand smoke?",
+    "note": "Correctly identified secondhand smoke risk and counseling need but did not cite specific national resources mentioned in the chunk."
+  },
+  "7": {
+    "label": "correct",
+    "question": "What is the most urgent diagnosis to rule out in a child presenting with scrotal pain?",
+    "note": "Correctly identified testicular torsion. Citation to Kliegman p.152 accurate."
+  },
+  "8": {
+    "label": "incorrect",
+    "question": "What immune disorders can cause hemoptysis in children?",
+    "note": "Answer listed only SLE, omitted HSP and polyarteritis nodosa. Root cause: fixed chunking split the immune disorder list across two chunks; lower-scored chunk was not retrieved."
+  },
+  "9": {
+    "label": "correct",
+    "question": "What are the bacterial causes of acute gastroenteritis listed in the pediatric decision-making guide?",
+    "note": "All 8 bacterial causes listed correctly from Kliegman p.102. Citation accurate. Excellent factual retrieval."
+  }
+}

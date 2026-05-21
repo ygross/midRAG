@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ablation Study — Pediatric RAG</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Arial, sans-serif; background: #f0f4f8; color: #1a2a3a; min-height: 100vh; }
+
+    header { background: linear-gradient(135deg, #1a3a5c 0%, #2e6da4 100%); color: white; padding: 16px 28px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    header .logo { font-size: 1.8rem; line-height: 1; }
+    header h1    { font-size: 1.25rem; font-weight: 700; }
+    header p     { font-size: .75rem; opacity: .75; margin-top: 2px; }
+    .header-badge { margin-left: auto; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: 4px 14px; font-size: .72rem; white-space: nowrap; }
+    nav { display: flex; gap: 6px; margin-left: 12px; }
+    nav a { color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; padding: 5px 14px; font-size: .8rem; text-decoration: none; background: rgba(255,255,255,.08); transition: background .15s; }
+    nav a:hover  { background: rgba(255,255,255,.18); color: white; }
+    nav a.active { background: rgba(255,255,255,.25); color: white; font-weight: 600; border-color: rgba(255,255,255,.4); }
+
+    .page { padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Add experiment panel */
+    .add-panel { background: white; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.08); padding: 20px 22px; }
+    .add-panel h2 { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #5a7a9a; margin-bottom: 14px; }
+    .form-row { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+    .ctrl-group { display: flex; flex-direction: column; gap: 5px; }
+    .ctrl-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #5a7a9a; }
+    input[type=text], input[type=number], select, textarea {
+      background: #f5f8fc; border: 1.5px solid #c2d8f0; border-radius: 8px;
+      padding: 7px 12px; font-size: .85rem; color: #1a2a3a; outline: none;
+      font-family: inherit;
+    }
+    select { padding-right: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a7a9a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; appearance: none; }
+    input:focus, select:focus, textarea:focus { border-color: #2e6da4; }
+    textarea { resize: vertical; min-height: 60px; width: 100%; }
+    .seg-toggle { display: flex; border: 1.5px solid #c2d8f0; border-radius: 8px; overflow: hidden; }
+    .seg-toggle label { flex: 1; display: flex; align-items: center; justify-content: center; padding: 7px 14px; font-size: .82rem; cursor: pointer; background: #f5f8fc; color: #5a7a9a; transition: background .15s; white-space: nowrap; user-select: none; }
+    .seg-toggle input { display: none; }
+    .seg-toggle input:checked + label { background: #2e6da4; color: white; font-weight: 600; }
+    .seg-toggle label:not(:last-child) { border-right: 1px solid #c2d8f0; }
+    .run-btn { background: #2e6da4; color: white; border: none; border-radius: 8px; padding: 9px 22px; font-size: .88rem; font-weight: 600; cursor: pointer; align-self: flex-end; white-space: nowrap; transition: background .15s; }
+    .run-btn:hover    { background: #1a5c93; }
+    .run-btn:disabled { background: #a0b8d0; cursor: default; }
+
+    /* Presets */
+    .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .preset-btn { background: #f0f6ff; border: 1px solid #c2d8f0; border-radius: 8px; padding: 5px 12px; font-size: .78rem; color: #1a3a5c; cursor: pointer; transition: background .15s; }
+    .preset-btn:hover { background: #ddeeff; border-color: #2e6da4; }
+
+    /* Running status */
+    .run-status { display: none; align-items: center; gap: 10px; background: #e8f2fc; border: 1px solid #b0cde8; border-radius: 8px; padding: 10px 14px; font-size: .82rem; color: #1a3a5c; }
+    .run-status .spinner { width: 14px; height: 14px; border: 2px solid rgba(30,58,92,.2); border-top-color: #2e6da4; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results table */
+    .card { background: white; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.08); overflow: hidden; }
+    .card-header { padding: 11px 18px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; display: flex; align-items: center; gap: 8px; background: #e8f2fc; color: #1a3a5c; }
+    .card-body   { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { background: #f5f8fc; padding: 9px 12px; font-weight: 700; text-align: left; color: #5a7a9a; border-bottom: 1px solid #d8e4f0; white-space: nowrap; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafd; }
+
+    .strat-chip { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: .72rem; font-weight: 600; }
+    .strat-chip.fixed     { background: #e8f2fc; color: #1a3a5c; }
+    .strat-chip.paragraph { background: #e6f4ea; color: #1e5c2e; }
+
+    .hit-val  { font-weight: 700; color: #1e7c3a; }
+    .prec-val { color: #1a3a5c; }
+
+    .mini-bar-wrap { display: inline-block; width: 80px; height: 8px; background: #f0f4f8; border-radius: 4px; vertical-align: middle; overflow: hidden; margin-right: 4px; }
+    .mini-bar { height: 100%; background: linear-gradient(90deg, #2e6da4, #0e7c7b); border-radius: 4px; }
+
+    .del-btn { background: none; border: none; cursor: pointer; color: #c0392b; font-size: .9rem; padding: 2px 6px; border-radius: 4px; transition: background .15s; }
+    .del-btn:hover { background: #fde8ea; }
+
+    .best-row td { background: #f0fff4 !important; }
+    .best-tag { font-size: .65rem; background: #1e7c3a; color: white; border-radius: 4px; padding: 1px 5px; margin-left: 4px; }
+
+    .cat-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+    .cat-pill  { font-size: .65rem; padding: 1px 6px; border-radius: 8px; background: #f0f4f8; color: #5a7a9a; }
+
+    .notes-cell { max-width: 180px; font-size: .75rem; color: #5a7a9a; white-space: normal; line-height: 1.4; }
+
+    .empty { text-align: center; padding: 40px; color: #a0b8d0; font-size: .88rem; }
+
+    /* ── Tooltips ── */
+    [data-tooltip] { position: relative; cursor: help; }
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #1a2a3a; color: #ddeeff; padding: 8px 12px; border-radius: 8px;
+      font-size: .72rem; font-weight: 400; line-height: 1.5; white-space: normal;
+      width: max-content; max-width: 230px; z-index: 9999;
+      pointer-events: none; opacity: 0; transition: opacity .18s;
+      text-transform: none; letter-spacing: 0; box-shadow: 0 4px 14px rgba(0,0,0,.3);
+    }
+    [data-tooltip]::before {
+      content: ''; position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%);
+      border: 5px solid transparent; border-top-color: #1a2a3a;
+      z-index: 9999; pointer-events: none; opacity: 0; transition: opacity .18s;
+    }
+    [data-tooltip]:hover::after, [data-tooltip]:hover::before { opacity: 1; }
+    .tt { border-bottom: 1px dotted #8aabcc; }
+    #dark-toggle{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:5px 11px;font-size:.95rem;cursor:pointer;color:white;transition:background .18s;flex-shrink:0;margin-left:6px;}
+    #dark-toggle:hover{background:rgba(255,255,255,.26);}
+    html.dark body{background:#0e1a28;color:#c8d8e8;}
+    html.dark header{background:linear-gradient(135deg,#0d2236,#1a4a7a);}
+    html.dark .controls-bar{background:#111e2d;border-color:#1e3a52;}
+    html.dark .card,html.dark .ablation-card{background:#162234;border-color:#1e3a52;}
+    html.dark h1,html.dark h2,html.dark h3,html.dark h4{color:#c8d8e8;}
+    html.dark p,html.dark li{color:#a0b8cc;}
+    html.dark label,html.dark .ctrl-label{color:#6a8aaa;}
+    html.dark th{background:#111e2d!important;color:#6a8aaa!important;border-color:#1e3a52!important;}
+    html.dark td{border-color:#1e3a52!important;color:#a0b8cc;}
+    html.dark input,html.dark select,html.dark textarea{background:#111e2d;border-color:#1e3a52;color:#c8d8e8;}
+    html.dark select option{background:#111e2d;}
+    html.dark code{background:#0d1b2a!important;border-color:#1e3a52!important;color:#5abedc!important;}
+    html.dark ::-webkit-scrollbar-track{background:#0e1a28;}html.dark ::-webkit-scrollbar-thumb{background:#1e3a52;}
+  </style>
+  <script src="/static/darkmode.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="logo">🩺</div>
+  <div>
+    <h1>Pediatric RAG — Ablation Study</h1>
+    <p>Compare retrieval strategies, k values, and configurations</p>
+  </div>
+  <div class="header-badge">Mid-Course Assignment</div>
+  <nav>
+    <a href="/build">1. Rebuild</a>
+    <a href="/">2. Demo</a>
+    <a href="/eval">3. Eval</a>
+    <a href="/ablation" class="active">4. Ablation</a>
+    <a href="/goldset">5. Gold Set</a>
+    <a href="/help">Help</a>
+    <a href="/qa">Q&amp;A</a>
+  </nav>
+  <button id="dark-toggle" onclick="toggleDark()" title="Switch to dark mode">🌙</button>
+</header>
+
+<div class="page">
+
+  <!-- Add experiment -->
+  <div class="add-panel">
+    <h2>Add Experiment</h2>
+    <div class="form-row">
+      <div class="ctrl-group">
+        <span class="ctrl-label">Label</span>
+        <input type="text" id="exp-label" placeholder="e.g. Fixed k=5 baseline" style="width:220px;" />
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label"><span class="tt" data-tooltip="Chunking method: Fixed-size splits text into equal-length character blocks (default 400 chars, 50 overlap). Paragraph splits at natural paragraph boundaries.">Strategy</span></span>
+        <div class="seg-toggle">
+          <input type="radio" name="strategy" id="s-fixed" value="fixed" checked />
+          <label for="s-fixed">Fixed</label>
+          <input type="radio" name="strategy" id="s-para" value="paragraph" />
+          <label for="s-para">Paragraph</label>
+        </div>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label"><span class="tt" data-tooltip="Number of chunks retrieved per query. Higher k = better coverage but more noise and higher LLM token cost. Sweet spot for this corpus: 5.">Top-k</span></span>
+        <input type="number" id="exp-k" min="1" max="10" value="5" style="width:68px;" />
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label"><span class="tt" data-tooltip="How many gold-set questions to evaluate. Use 10–20 for quick comparisons; run All 52 only for the best configuration before reporting.">Questions</span></span>
+        <select id="exp-limit">
+          <option value="10">10 (quick)</option>
+          <option value="20" selected>20</option>
+          <option value="52">All 52</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Model</span>
+        <select id="exp-model">
+          <optgroup label="☁ Anthropic Cloud">
+            <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+          </optgroup>
+          <optgroup label="💻 Local HF">
+            <option value="google/flan-t5-base">Flan-T5 Base</option>
+            <option value="google/flan-t5-large">Flan-T5 Large</option>
+          </optgroup>
+        </select>
+      </div>
+      <button class="run-btn" id="run-btn" onclick="runExperiment()">▶ Run</button>
+    </div>
+
+    <div style="margin-top:12px;">
+      <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#5a7a9a;">Notes</span>
+      <textarea id="exp-notes" placeholder="Optional notes about this configuration…" style="margin-top:6px;"></textarea>
+    </div>
+
+    <!-- Presets -->
+    <div class="presets">
+      <span style="font-size:.72rem;color:#5a7a9a;align-self:center;">Presets:</span>
+      <button class="preset-btn" onclick="applyPreset('fixed','fixed k=5 baseline',5,20)">Fixed k=5 (baseline)</button>
+      <button class="preset-btn" onclick="applyPreset('fixed','fixed k=3',3,20)">Fixed k=3</button>
+      <button class="preset-btn" onclick="applyPreset('fixed','fixed k=10',10,20)">Fixed k=10</button>
+      <button class="preset-btn" onclick="applyPreset('paragraph','paragraph k=5',5,20)">Paragraph k=5</button>
+      <button class="preset-btn" onclick="applyPreset('paragraph','paragraph k=3',3,20)">Paragraph k=3</button>
+    </div>
+
+    <div id="run-status" class="run-status" style="margin-top:12px;">
+      <div class="spinner"></div>
+      <span id="run-status-text">Running experiment…</span>
+    </div>
+  </div>
+
+  <!-- Results table -->
+  <div class="card">
+    <div class="card-header">📊 Experiment Results</div>
+    <div class="card-body">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Label</th>
+            <th><span class="tt" data-tooltip="Chunking method: Fixed-size (equal character blocks, 400 chars default) or Paragraph (natural paragraph boundaries).">Strategy</span></th>
+            <th><span class="tt" data-tooltip="Number of chunks retrieved per query. Higher k = more coverage but more noise and higher LLM cost.">k</span></th>
+            <th><span class="tt" data-tooltip="Number of gold-set questions evaluated in this experiment.">n</span></th>
+            <th><span class="tt" data-tooltip="Fraction of questions where at least one of the top-k chunks came from the correct source. Binary ✓/✗ per question, averaged. Target: &gt;75%.">Hit@k</span></th>
+            <th><span class="tt" data-tooltip="Average fraction of the k retrieved chunks that came from the correct source document. Target: &gt;70%.">Precision@k</span></th>
+            <th><span class="tt" data-tooltip="Mean seconds per question from submission to answer. LLM call dominates (~5–9 s for Claude Haiku). Retrieval is ~10 ms.">Avg Lat.</span></th>
+            <th><span class="tt" data-tooltip="Total wall-clock time for all n questions in this experiment (roughly: Avg Latency × n).">Total Time</span></th>
+            <th><span class="tt" data-tooltip="Hit@k broken down by question category (Factual, Numerical, Temporal, Negation, Comparison).">Per-category</span></th>
+            <th>Notes</th>
+            <th>Timestamp</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="abl-tbody">
+          <tr><td colspan="13" class="empty">No experiments yet. Add one above.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let rows = [];
+
+  async function loadResults() {
+    try {
+      const r = await fetch("/ablation/results");
+      rows = await r.json();
+      renderTable();
+    } catch {}
+  }
+  loadResults();
+
+  function applyPreset(strategy, label, k, limit) {
+    document.querySelector(`input[name="strategy"][value="${strategy}"]`).checked = true;
+    document.getElementById("exp-label").value  = label;
+    document.getElementById("exp-k").value      = k;
+    document.getElementById("exp-limit").value  = limit;
+  }
+
+  async function runExperiment() {
+    const strategy = document.querySelector('input[name="strategy"]:checked').value;
+    const k        = parseInt(document.getElementById("exp-k").value) || 5;
+    const limit    = parseInt(document.getElementById("exp-limit").value) || 20;
+    const model    = document.getElementById("exp-model").value;
+    const label    = document.getElementById("exp-label").value.trim() || `${strategy} k=${k}`;
+    const notes    = document.getElementById("exp-notes").value.trim();
+
+    const btn = document.getElementById("run-btn");
+    btn.disabled = true;
+    const statusEl = document.getElementById("run-status");
+    statusEl.style.display = "flex";
+    document.getElementById("run-status-text").textContent =
+      `Running ${limit} questions with ${strategy} k=${k}…`;
+
+    try {
+      const resp = await fetch("/ablation/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ strategy, k, limit, model, label, notes })
+      });
+      if (!resp.ok) {
+        const err = await resp.json();
+        alert("Error: " + (err.error || "Unknown"));
+        return;
+      }
+      const row = await resp.json();
+      rows.push(row);
+      renderTable();
+      document.getElementById("exp-notes").value = "";
+    } catch (e) {
+      alert("Request failed: " + e);
+    } finally {
+      btn.disabled = false;
+      statusEl.style.display = "none";
+    }
+  }
+
+  async function deleteRow(idx) {
+    if (!confirm("Delete this experiment?")) return;
+    await fetch("/ablation/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idx })
+    });
+    rows.splice(idx, 1);
+    renderTable();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById("abl-tbody");
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="13" class="empty">No experiments yet. Add one above.</td></tr>`;
+      return;
+    }
+    // Find best hit
+    const bestHit = Math.max(...rows.map(r => r.hit_at_k));
+    tbody.innerHTML = rows.map((r, i) => {
+      const isBest = r.hit_at_k === bestHit;
+      const hitPct  = (r.hit_at_k  * 100).toFixed(1);
+      const precPct = (r.precision * 100).toFixed(1);
+      const cats = Object.entries(r.categories || {}).map(([c, v]) =>
+        `<span class="cat-pill" title="${c}">${c[0].toUpperCase()}: ${(v*100).toFixed(0)}%</span>`
+      ).join("");
+      return `
+        <tr class="${isBest ? 'best-row' : ''}">
+          <td>${i+1}</td>
+          <td><strong>${esc(r.label)}</strong>${isBest ? '<span class="best-tag">BEST</span>' : ''}</td>
+          <td><span class="strat-chip ${r.strategy}">${r.strategy}</span></td>
+          <td>${r.k}</td>
+          <td>${r.limit}</td>
+          <td class="hit-val">
+            <span class="mini-bar-wrap"><span class="mini-bar" style="width:${hitPct}%"></span></span>
+            ${hitPct}%
+          </td>
+          <td class="prec-val">${precPct}%</td>
+          <td>${r.latency}s</td>
+          <td>${r.total_time}s</td>
+          <td><div class="cat-pills">${cats}</div></td>
+          <td class="notes-cell">${esc(r.notes||"")}</td>
+          <td style="font-size:.72rem;color:#a0b8d0;white-space:nowrap;">${r.timestamp||""}</td>
+          <td><button class="del-btn" onclick="deleteRow(${i})" title="Delete">✕</button></td>
+        </tr>`;
+    }).join("");
+  }
+
+  function esc(s) {
+    return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  let _traceOpen = false;
+  function toggleTrace() {
+    _traceOpen = !_traceOpen;
+    document.getElementById("trace-body").style.display = _traceOpen ? "grid" : "none";
+    document.getElementById("trace-caret").classList.toggle("open", _traceOpen);
+  }
+</script>
+
+<style>
+  .trace-panel{font-family:"Courier New",monospace;background:#0d1b2a;border-top:2px solid #1e5c8a;}
+  .trace-hdr{display:flex;align-items:center;gap:10px;padding:10px 24px;cursor:pointer;background:#0f2030;user-select:none;transition:background .15s;}
+  .trace-hdr:hover{background:#132840;}
+  .trace-pill{background:#1e4a6e;color:#7ec8e3;border-radius:12px;padding:3px 12px;font-family:"Segoe UI",sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.06em;white-space:nowrap;}
+  .trace-hdr-sub{font-size:.72rem;color:#3a6a8a;flex:1;font-family:"Segoe UI",sans-serif;}
+  .trace-caret{color:#3a6a8a;transition:transform .2s;}
+  .trace-caret.open{transform:rotate(90deg);}
+  .trace-body{display:grid;grid-template-columns:1fr 420px;max-height:360px;}
+  @media(max-width:860px){.trace-body{grid-template-columns:1fr;}}
+  .trace-log-section{padding:14px 22px;border-right:1px solid #1e3a52;overflow-y:auto;}
+  .trace-explain-section{padding:14px 22px;font-family:"Segoe UI",Arial,sans-serif;overflow-y:auto;background:#0f1e2e;}
+  .trace-section-title{font-size:.58rem;font-weight:700;letter-spacing:.14em;color:#1e5a8a;margin-bottom:10px;font-family:"Segoe UI",sans-serif;}
+  .explain-step{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #172a3a;}
+  .explain-step:last-child{border-bottom:none;}
+  .explain-num{background:#1a3e5c;color:#4abedc;border-radius:50%;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;margin-top:1px;font-family:"Segoe UI",sans-serif;flex-shrink:0;}
+  .explain-title{font-weight:700;color:#6ab8d8;font-size:.78rem;margin-bottom:2px;}
+  .explain-desc{color:#4a7a9a;line-height:1.5;font-size:.73rem;}
+  .explain-code{display:inline-block;background:#152638;border-radius:3px;padding:0 6px;color:#ffd080;font-size:.7rem;font-family:"Courier New",monospace;}
+  .ablation-matrix{width:100%;border-collapse:collapse;font-size:.72rem;margin-top:10px;}
+  .ablation-matrix th{background:#1a3e5c;color:#4abedc;padding:5px 8px;text-align:center;font-family:"Segoe UI",sans-serif;}
+  .ablation-matrix td{padding:4px 8px;text-align:center;color:#4a7a9a;border-bottom:1px solid #172a3a;}
+  .ablation-matrix .best{color:#ffd080;font-weight:700;}
+</style>
+<div class="trace-panel" id="trace-panel">
+  <div class="trace-hdr" onclick="toggleTrace()">
+    <span class="trace-pill">🔬 Pipeline Trace</span>
+    <span class="trace-hdr-sub">— what ablation study means and how to read the results</span>
+    <span class="trace-caret" id="trace-caret">▶</span>
+  </div>
+  <div class="trace-body" id="trace-body" style="display:none;">
+
+    <div class="trace-log-section">
+      <div class="trace-section-title">ABLATION DESIGN</div>
+      <div style="font-size:.73rem;color:#4a8aaa;line-height:2;">
+        <div><span style="color:#4abedc;">WHAT IS ABLATION?</span></div>
+        <div>Systematically vary ONE parameter at a time.</div>
+        <div>Measure how each change affects Hit@k and Precision@k.</div>
+        <div style="margin-top:10px;"><span style="color:#4abedc;">VARIABLES TESTED:</span></div>
+        <div><span style="color:#ffd080;">k</span> = 1, 3, 5, 7, 10</div>
+        <div><span style="color:#ffd080;">strategy</span> = fixed | paragraph</div>
+        <div style="margin-top:10px;color:#2a5a7a;">Each row = one experimental run over N gold questions.</div>
+      </div>
+      <table class="ablation-matrix">
+        <tr><th>k</th><th>Hit@k (est.)</th><th>Precision@k</th><th>verdict</th></tr>
+        <tr><td>1</td><td>61%</td><td>61%</td><td style="color:#4a7a9a;">low recall</td></tr>
+        <tr><td>3</td><td>74%</td><td>71%</td><td style="color:#4a7a9a;">good</td></tr>
+        <tr class="best"><td>5</td><td class="best">82.7%</td><td class="best">88%</td><td style="color:#ffd080;">★ sweet spot</td></tr>
+        <tr><td>10</td><td>85%</td><td>74%</td><td style="color:#4a7a9a;">noisy</td></tr>
+      </table>
+    </div>
+
+    <div class="trace-explain-section">
+      <div class="trace-section-title">HOW TO READ THE TABLE</div>
+      <div class="explain-step">
+        <div class="explain-num">k</div>
+        <div class="explain-body">
+          <div class="explain-title">Top-k — the variable being ablated</div>
+          <div class="explain-desc">How many chunks are retrieved and passed to the LLM. Higher k = more coverage (Hit↑) but more irrelevant chunks in the prompt (Precision↓, latency↑).</div>
+        </div>
+      </div>
+      <div class="explain-step">
+        <div class="explain-num">H</div>
+        <div class="explain-body">
+          <div class="explain-title">Hit@k — did we find the answer?</div>
+          <div class="explain-desc">Primary metric. 1 if the correct source appears anywhere in the top-k results. This is what matters most — if the correct chunk is missing, the LLM <i>cannot</i> answer correctly.</div>
+        </div>
+      </div>
+      <div class="explain-step">
+        <div class="explain-num">P</div>
+        <div class="explain-body">
+          <div class="explain-title">Precision@k — quality of retrieval</div>
+          <div class="explain-desc">What fraction of the k chunks are from the right source? Low precision means the prompt is full of noise. High k + low precision = longer prompt for no benefit.</div>
+        </div>
+      </div>
+      <div class="explain-step">
+        <div class="explain-num">S</div>
+        <div class="explain-body">
+          <div class="explain-title">Strategy — fixed vs paragraph</div>
+          <div class="explain-desc"><span class="explain-code">fixed</span>: 400-char sliding window — consistent length, easier for the embedder. <span class="explain-code">paragraph</span>: natural boundaries — better semantic coherence but variable length.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

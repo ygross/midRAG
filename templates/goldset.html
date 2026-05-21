@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gold Set Editor — Pediatric RAG</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Arial, sans-serif; background: #f0f4f8; color: #1a2a3a; min-height: 100vh; }
+
+    header { background: linear-gradient(135deg, #1a3a5c 0%, #2e6da4 100%); color: white; padding: 16px 28px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    header .logo { font-size: 1.8rem; line-height: 1; }
+    header h1    { font-size: 1.25rem; font-weight: 700; }
+    header p     { font-size: .75rem; opacity: .75; margin-top: 2px; }
+    .header-badge { margin-left: auto; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: 4px 14px; font-size: .72rem; white-space: nowrap; }
+    nav { display: flex; gap: 6px; margin-left: 12px; }
+    nav a { color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; padding: 5px 14px; font-size: .8rem; text-decoration: none; background: rgba(255,255,255,.08); transition: background .15s; }
+    nav a:hover  { background: rgba(255,255,255,.18); color: white; }
+    nav a.active { background: rgba(255,255,255,.25); color: white; font-weight: 600; border-color: rgba(255,255,255,.4); }
+
+    /* Toolbar */
+    .toolbar { background: #fff; border-bottom: 1px solid #d0dcec; padding: 12px 28px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .cat-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+    .cat-btn { border: 1.5px solid #c2d8f0; border-radius: 20px; padding: 4px 12px; font-size: .76rem; cursor: pointer; background: #f5f8fc; color: #5a7a9a; transition: all .15s; }
+    .cat-btn:hover  { background: #ddeeff; border-color: #2e6da4; }
+    .cat-btn.active { background: #2e6da4; color: white; border-color: #2e6da4; font-weight: 600; }
+    .cat-btn.factual.active    { background: #2e6da4; }
+    .cat-btn.numerical.active  { background: #1e7c3a; border-color: #1e7c3a; }
+    .cat-btn.temporal.active   { background: #6a2da4; border-color: #6a2da4; }
+    .cat-btn.negation.active   { background: #c07000; border-color: #c07000; }
+    .cat-btn.comparison.active { background: #c0202a; border-color: #c0202a; }
+    .count-badge { background: #f0f4f8; border: 1px solid #d8e4f0; border-radius: 12px; padding: 3px 10px; font-size: .75rem; color: #5a7a9a; white-space: nowrap; margin-left: auto; }
+    .add-btn { background: #2e6da4; color: white; border: none; border-radius: 8px; padding: 7px 16px; font-size: .82rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s; }
+    .add-btn:hover { background: #1a5c93; }
+
+    .page { padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Edit panel */
+    .edit-panel { background: white; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.08); padding: 20px 22px; display: none; }
+    .edit-panel.open { display: block; }
+    .edit-panel h3 { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #5a7a9a; margin-bottom: 14px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .ctrl-group { display: flex; flex-direction: column; gap: 5px; }
+    .ctrl-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #5a7a9a; }
+    input[type=text], select, textarea {
+      background: #f5f8fc; border: 1.5px solid #c2d8f0; border-radius: 8px;
+      padding: 8px 12px; font-size: .85rem; color: #1a2a3a; outline: none; font-family: inherit; width: 100%;
+    }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a7a9a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; appearance: none; padding-right: 34px; }
+    input:focus, select:focus, textarea:focus { border-color: #2e6da4; }
+    textarea { resize: vertical; min-height: 70px; }
+    .edit-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .save-btn   { background: #2e6da4; color: white; border: none; border-radius: 8px; padding: 8px 18px; font-size: .86rem; font-weight: 600; cursor: pointer; }
+    .save-btn:hover { background: #1a5c93; }
+    .cancel-btn { background: #f0f4f8; color: #5a7a9a; border: 1px solid #d8e4f0; border-radius: 8px; padding: 8px 16px; font-size: .86rem; cursor: pointer; }
+    .cancel-btn:hover { background: #e0e8f0; }
+    .save-msg { font-size: .8rem; color: #1e7c3a; margin-left: 8px; align-self: center; display: none; }
+
+    /* Table */
+    .card { background: white; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.08); overflow: hidden; }
+    .card-header { padding: 11px 18px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; display: flex; align-items: center; gap: 8px; background: #fef3e8; color: #7a4a00; }
+    .card-body { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { background: #f5f8fc; padding: 9px 12px; font-weight: 700; text-align: left; color: #5a7a9a; border-bottom: 1px solid #d8e4f0; white-space: nowrap; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafd; }
+
+    .cat-chip { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: .72rem; font-weight: 600; }
+    .cat-chip.factual    { background: #e8f2fc; color: #1a3a5c; }
+    .cat-chip.numerical  { background: #e6f4ea; color: #1e5c2e; }
+    .cat-chip.temporal   { background: #f0e8fc; color: #4a1a7c; }
+    .cat-chip.negation   { background: #fef3e8; color: #7a4a00; }
+    .cat-chip.comparison { background: #fde8ea; color: #7c1a2a; }
+
+    .q-cell   { max-width: 280px; white-space: normal; line-height: 1.4; }
+    .ref-cell { max-width: 220px; white-space: normal; line-height: 1.4; font-size: .75rem; color: #5a7a9a; }
+    .ids-cell { max-width: 200px; font-family: "Courier New", monospace; font-size: .7rem; color: #2e6da4; white-space: normal; line-height: 1.6; }
+
+    .edit-row-btn { background: none; border: 1px solid #c2d8f0; border-radius: 6px; padding: 3px 8px; font-size: .72rem; color: #2e6da4; cursor: pointer; margin-right: 4px; transition: all .15s; }
+    .edit-row-btn:hover { background: #e8f2fc; }
+    .del-btn  { background: none; border: 1px solid #f0b8b0; border-radius: 6px; padding: 3px 8px; font-size: .72rem; color: #c0392b; cursor: pointer; transition: all .15s; }
+    .del-btn:hover { background: #fde8ea; }
+
+    /* Stats summary */
+    .stats-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .stat-chip { background: white; border: 1px solid #d8e4f0; border-radius: 8px; padding: 6px 14px; font-size: .78rem; color: #1a2a3a; }
+    .stat-chip strong { color: #2e6da4; }
+
+    .empty { text-align: center; padding: 40px; color: #a0b8d0; font-size: .88rem; }
+    #dark-toggle{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:5px 11px;font-size:.95rem;cursor:pointer;color:white;transition:background .18s;flex-shrink:0;margin-left:6px;}
+    #dark-toggle:hover{background:rgba(255,255,255,.26);}
+    html.dark body{background:#0e1a28;color:#c8d8e8;}
+    html.dark header{background:linear-gradient(135deg,#0d2236,#1a4a7a);}
+    html.dark .controls-bar{background:#111e2d;border-color:#1e3a52;}
+    html.dark .card,html.dark .edit-panel{background:#162234;border-color:#1e3a52;}
+    html.dark h1,html.dark h2,html.dark h3,html.dark h4{color:#c8d8e8;}
+    html.dark p,html.dark li{color:#a0b8cc;}
+    html.dark label{color:#6a8aaa;}
+    html.dark th{background:#111e2d!important;color:#6a8aaa!important;border-color:#1e3a52!important;}
+    html.dark td{border-color:#1e3a52!important;color:#a0b8cc;}
+    html.dark input,html.dark select,html.dark textarea{background:#111e2d;border-color:#1e3a52;color:#c8d8e8;}
+    html.dark select option{background:#111e2d;}
+    html.dark .stat-chip{background:#162234;border-color:#1e3a52;color:#a0b8cc;}
+    html.dark ::-webkit-scrollbar-track{background:#0e1a28;}html.dark ::-webkit-scrollbar-thumb{background:#1e3a52;}
+  </style>
+  <script src="/static/darkmode.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="logo">🩺</div>
+  <div>
+    <h1>Pediatric RAG — Gold Set Editor</h1>
+    <p>Manage evaluation questions · 50 questions across 5 categories</p>
+  </div>
+  <div class="header-badge">Mid-Course Assignment</div>
+  <nav>
+    <a href="/build">1. Rebuild</a>
+    <a href="/">2. Demo</a>
+    <a href="/eval">3. Eval</a>
+    <a href="/ablation">4. Ablation</a>
+    <a href="/goldset" class="active">5. Gold Set</a>
+    <a href="/help">Help</a>
+    <a href="/qa">Q&amp;A</a>
+  </nav>
+  <button id="dark-toggle" onclick="toggleDark()" title="Switch to dark mode">🌙</button>
+</header>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="cat-filters">
+    <button class="cat-btn active" onclick="filterCat('all', this)">All</button>
+    <button class="cat-btn factual"    onclick="filterCat('factual', this)">Factual</button>
+    <button class="cat-btn numerical"  onclick="filterCat('numerical', this)">Numerical</button>
+    <button class="cat-btn temporal"   onclick="filterCat('temporal', this)">Temporal</button>
+    <button class="cat-btn negation"   onclick="filterCat('negation', this)">Negation</button>
+    <button class="cat-btn comparison" onclick="filterCat('comparison', this)">Comparison</button>
+  </div>
+  <div class="count-badge" id="count-badge">Loading…</div>
+  <button class="add-btn" onclick="openNew()">+ Add Question</button>
+</div>
+
+<div class="page">
+
+  <!-- Category stats -->
+  <div class="stats-row" id="stats-row"></div>
+
+  <!-- Edit panel -->
+  <div class="edit-panel" id="edit-panel">
+    <h3 id="edit-title">Add Question</h3>
+    <input type="hidden" id="edit-idx" value="-1" />
+    <div class="form-grid">
+      <div class="ctrl-group full">
+        <span class="ctrl-label">Question *</span>
+        <textarea id="ed-question" rows="2" placeholder="Clinical question…"></textarea>
+      </div>
+      <div class="ctrl-group full">
+        <span class="ctrl-label">Reference Answer *</span>
+        <textarea id="ed-ref" rows="3" placeholder="Expected answer (used as reference for labeling)…"></textarea>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Category</span>
+        <select id="ed-cat">
+          <option value="factual">Factual</option>
+          <option value="numerical">Numerical</option>
+          <option value="temporal">Temporal</option>
+          <option value="negation">Negation</option>
+          <option value="comparison">Comparison</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Must-cite chunk IDs (comma-separated)</span>
+        <input type="text" id="ed-ids" placeholder="klieg_p42_c0, aap_p100_c2" />
+      </div>
+    </div>
+    <div class="edit-actions">
+      <button class="save-btn" onclick="saveQuestion()">Save</button>
+      <button class="cancel-btn" onclick="closeEdit()">Cancel</button>
+      <span class="save-msg" id="save-msg">Saved!</span>
+    </div>
+  </div>
+
+  <!-- Questions table -->
+  <div class="card">
+    <div class="card-header">📋 Gold Set Questions</div>
+    <div class="card-body">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Category</th>
+            <th>Question</th>
+            <th>Reference Answer</th>
+            <th>Must-cite IDs</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="gs-tbody">
+          <tr><td colspan="6" class="empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let allQuestions = [];
+  let currentFilter = "all";
+
+  async function load() {
+    try {
+      const r = await fetch("/goldset/questions");
+      allQuestions = await r.json();
+      renderStats();
+      renderTable();
+    } catch {
+      document.getElementById("gs-tbody").innerHTML =
+        `<tr><td colspan="6" class="empty">Failed to load questions.</td></tr>`;
+    }
+  }
+  load();
+
+  function filterCat(cat, btn) {
+    currentFilter = cat;
+    document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderTable();
+  }
+
+  function renderStats() {
+    const cats = {};
+    allQuestions.forEach(q => { cats[q.category] = (cats[q.category]||0) + 1; });
+    const total = allQuestions.length;
+    document.getElementById("count-badge").textContent = `${total} questions total`;
+    document.getElementById("stats-row").innerHTML =
+      Object.entries(cats).map(([c,n]) =>
+        `<div class="stat-chip"><span class="cat-chip ${c}">${c}</span> <strong>${n}</strong></div>`
+      ).join("") + `<div class="stat-chip">Total: <strong>${total}</strong></div>`;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById("gs-tbody");
+    const visible = currentFilter === "all"
+      ? allQuestions
+      : allQuestions.filter(q => q.category === currentFilter);
+
+    if (!visible.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty">No questions in this category.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = visible.map((q, vi) => {
+      const globalIdx = allQuestions.indexOf(q);
+      const ids = (q.must_cite_chunk_ids || []).join(", ");
+      return `
+        <tr>
+          <td>${globalIdx + 1}</td>
+          <td><span class="cat-chip ${q.category}">${q.category}</span></td>
+          <td class="q-cell">${esc(q.question)}</td>
+          <td class="ref-cell">${esc(q.reference_answer)}</td>
+          <td class="ids-cell">${esc(ids) || '<span style="color:#a0b8d0;">—</span>'}</td>
+          <td>
+            <button class="edit-row-btn" onclick="openEdit(${globalIdx})">✏ Edit</button>
+            <button class="del-btn" onclick="deleteQ(${globalIdx})">✕ Del</button>
+          </td>
+        </tr>`;
+    }).join("");
+  }
+
+  function openNew() {
+    document.getElementById("edit-idx").value     = -1;
+    document.getElementById("ed-question").value  = "";
+    document.getElementById("ed-ref").value       = "";
+    document.getElementById("ed-cat").value       = "factual";
+    document.getElementById("ed-ids").value       = "";
+    document.getElementById("edit-title").textContent = "Add Question";
+    document.getElementById("save-msg").style.display = "none";
+    const p = document.getElementById("edit-panel");
+    p.classList.add("open");
+    p.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("ed-question").focus();
+  }
+
+  function openEdit(idx) {
+    const q = allQuestions[idx];
+    document.getElementById("edit-idx").value     = idx;
+    document.getElementById("ed-question").value  = q.question || "";
+    document.getElementById("ed-ref").value       = q.reference_answer || "";
+    document.getElementById("ed-cat").value       = q.category || "factual";
+    document.getElementById("ed-ids").value       = (q.must_cite_chunk_ids || []).join(", ");
+    document.getElementById("edit-title").textContent = `Edit Question #${idx + 1}`;
+    document.getElementById("save-msg").style.display = "none";
+    const p = document.getElementById("edit-panel");
+    p.classList.add("open");
+    p.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("ed-question").focus();
+  }
+
+  function closeEdit() {
+    document.getElementById("edit-panel").classList.remove("open");
+  }
+
+  async function saveQuestion() {
+    const idx      = parseInt(document.getElementById("edit-idx").value);
+    const question = document.getElementById("ed-question").value.trim();
+    const ref      = document.getElementById("ed-ref").value.trim();
+    const cat      = document.getElementById("ed-cat").value;
+    const ids      = document.getElementById("ed-ids").value;
+
+    if (!question) { alert("Question is required."); return; }
+
+    const resp = await fetch("/goldset/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idx, question, reference_answer: ref,
+                             category: cat, must_cite_chunk_ids: ids })
+    });
+    if (!resp.ok) { alert("Save failed."); return; }
+
+    const msg = document.getElementById("save-msg");
+    msg.style.display = "inline";
+    setTimeout(() => msg.style.display = "none", 2000);
+
+    await load();
+    if (idx < 0) closeEdit();  // new → close after save
+  }
+
+  async function deleteQ(idx) {
+    if (!confirm(`Delete question #${idx+1}?\n"${allQuestions[idx]?.question?.slice(0,80)}"`)) return;
+    const resp = await fetch("/goldset/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idx })
+    });
+    if (!resp.ok) { alert("Delete failed."); return; }
+    await load();
+    closeEdit();
+  }
+
+  function esc(s) {
+    return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+</script>
+</body>
+</html>
