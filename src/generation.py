@@ -43,7 +43,33 @@ Rules:
 
 
 def _format_context(retrieved_chunks: list[dict]) -> str:
-    """Format retrieved chunks into a readable context block for the prompt."""
+    """
+    Format a list of retrieved chunks into a structured context block for the LLM prompt.
+
+    Each chunk is rendered as a labelled block containing its chunk ID, source file,
+    page number, and text. Blocks are separated by '---' dividers so the model can
+    clearly distinguish where one chunk ends and the next begins.
+
+    Example output:
+        [aap_p0251_fixed_000] (source: AAP_Case-Based.pdf, page 251)
+        The patient has returned to baseline neurologic status...
+
+        ---
+
+        [kliegman_p0032_fixed_001] (source: Kliegman_Pediatric.pdf, page 32)
+        Febrile seizures affect 2-5% of children aged 6 months to 5 years...
+
+    Parameters
+    ----------
+    retrieved_chunks : list[dict]
+        Chunk objects returned by retrieve(), each containing:
+        'chunk_id', 'text', 'score', 'metadata' (with 'source' and 'page').
+
+    Returns
+    -------
+    str
+        Multi-line context string ready to be inserted into the LLM user message.
+    """
     parts = []
     for chunk in retrieved_chunks:
         cid    = chunk.get("chunk_id", "unknown")
@@ -61,8 +87,31 @@ def generate_answer(question: str,
                     model: str = MODEL,
                     max_tokens: int = MAX_TOKENS) -> str:
     """
-    Generate an answer grounded in retrieved_chunks.
-    Routes to Anthropic Claude or a local HuggingFace model based on model name.
+    Generate a grounded answer to a question using the retrieved context chunks.
+
+    Routes automatically to the correct backend based on the model name:
+    - Model IDs starting with 'claude-' → Anthropic API (_generate_anthropic)
+    - Any other model ID → Local HuggingFace Transformers (_generate_hf)
+
+    The answer is grounded strictly in the retrieved_chunks context — the system
+    prompt instructs the model not to use outside knowledge and to always cite
+    the chunk IDs it relied on using [Source: chunk_id_1, chunk_id_2] syntax.
+
+    Parameters
+    ----------
+    question         : str
+        The user's natural-language question.
+    retrieved_chunks : list[dict]
+        Chunks returned by retrieve() — used as the grounding context.
+    model            : str
+        Model identifier. Default: 'claude-haiku-4-5-20251001'.
+    max_tokens       : int
+        Maximum tokens in the generated answer. Default: 512.
+
+    Returns
+    -------
+    str
+        Generated answer text, ending with a [Source: ...] citation block.
     """
     if model.startswith("claude-"):
         return _generate_anthropic(question, retrieved_chunks, model, max_tokens)
@@ -75,6 +124,39 @@ def _generate_anthropic(question: str,
                          retrieved_chunks: list[dict],
                          model: str,
                          max_tokens: int) -> str:
+    """
+    Call the Anthropic Claude API to generate a grounded answer.
+
+    Builds a two-part prompt:
+    - System: grounding rules (answer only from context, cite sources, say 'not found' if missing)
+    - User: the question + formatted context block from _format_context()
+
+    Retries automatically up to 8 times with exponential backoff (capped at 60s)
+    when the API returns HTTP 529 (overloaded). Raises immediately on all other errors.
+
+    Parameters
+    ----------
+    question         : str
+        The user's question.
+    retrieved_chunks : list[dict]
+        Context chunks to ground the answer in.
+    model            : str
+        Anthropic model ID (e.g. 'claude-haiku-4-5-20251001').
+    max_tokens       : int
+        Maximum tokens to generate.
+
+    Returns
+    -------
+    str
+        Raw text response from the model, stripped of leading/trailing whitespace.
+
+    Raises
+    ------
+    EnvironmentError
+        If ANTHROPIC_API_KEY is not set in the environment.
+    anthropic.APIStatusError
+        If the API returns a non-529 error, or if all 8 retry attempts fail.
+    """
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise EnvironmentError(
@@ -268,7 +350,35 @@ def _generate_hf(question: str,
                   retrieved_chunks: list[dict],
                   model_id: str,
                   max_tokens: int) -> str:
-    """Run inference with a local HuggingFace model."""
+    """
+    Run inference with a locally loaded HuggingFace model.
+
+    Supports two model architectures detected automatically:
+    - Encoder-decoder (seq2seq) models like Flan-T5 / BART:
+      Uses AutoTokenizer + AutoModelForSeq2SeqLM → model.generate() → decode.
+    - Causal decoder-only models like Zephyr / Mistral-Instruct:
+      Uses a text-generation pipeline with chat-template if available,
+      falling back to a plain string prompt.
+
+    The model must have been pre-loaded via prefetch_hf_model() or will be
+    downloaded and loaded on first call by _get_hf_pipeline().
+
+    Parameters
+    ----------
+    question         : str
+        The user's question.
+    retrieved_chunks : list[dict]
+        Context chunks to ground the answer in.
+    model_id         : str
+        HuggingFace model identifier (e.g. 'google/flan-t5-base').
+    max_tokens       : int
+        Maximum new tokens to generate.
+
+    Returns
+    -------
+    str
+        Generated answer text, stripped of leading/trailing whitespace.
+    """
     entry   = _get_hf_pipeline(model_id)
     context = _format_context(retrieved_chunks)
 

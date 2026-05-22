@@ -29,6 +29,17 @@ _index:  dict[str, dict] = {}   # strategy -> {embeddings: np.ndarray, chunks: l
 
 
 def _get_model() -> SentenceTransformer:
+    """
+    Return the shared SentenceTransformer embedding model, loading it on first call.
+
+    Uses a module-level singleton so the model weights are loaded into memory
+    only once per process, regardless of how many times retrieve() is called.
+
+    Returns
+    -------
+    SentenceTransformer
+        The loaded 'all-MiniLM-L6-v2' model (384-dimensional embeddings).
+    """
     global _model
     if _model is None:
         _model = SentenceTransformer(EMBED_MODEL)
@@ -36,7 +47,31 @@ def _get_model() -> SentenceTransformer:
 
 
 def _load_strategy(strategy: str) -> dict:
-    """Load embeddings + chunks for a strategy, caching in memory."""
+    """
+    Load and cache the numpy index for a given chunking strategy.
+
+    On first call for a strategy, reads the .npy embeddings file and the
+    corresponding .json chunk metadata file from index/ and stores them in
+    the module-level _index dict. Subsequent calls return the cached data
+    immediately without re-reading from disk.
+
+    Parameters
+    ----------
+    strategy : str
+        'fixed' or 'paragraph' — determines which index files to load.
+
+    Returns
+    -------
+    dict with keys:
+        'embeddings' : np.ndarray  shape (N, 384), float32
+        'chunks'     : list[dict]  parallel list of chunk metadata objects
+
+    Raises
+    ------
+    FileNotFoundError
+        If the index files for the requested strategy do not exist.
+        Run 'python src/build_index.py' to generate them.
+    """
     if strategy not in _index:
         emb_path  = INDEX_DIR / f"{strategy}_embeddings.npy"
         meta_path = INDEX_DIR / f"{strategy}_chunks.json"
@@ -115,7 +150,28 @@ def retrieve(query: str,
 # ---------------------------------------------------------------------------
 
 def retrieve_hybrid(query: str, k: int = 5) -> list[dict]:
-    """Retrieve from both strategies, deduplicate by (source, page), return top-k."""
+    """
+    Retrieve from both 'fixed' and 'paragraph' strategies and merge the results.
+
+    Runs retrieve() independently for each strategy, then deduplicates results
+    by (source, page) key — keeping the higher-scoring chunk when both strategies
+    return a result from the same page. Returns the top-k by score.
+
+    Use this when you want the best of both chunking strategies, at the cost
+    of running two embedding lookups instead of one.
+
+    Parameters
+    ----------
+    query : str
+        Natural-language question.
+    k : int
+        Number of results to return after merging and deduplication.
+
+    Returns
+    -------
+    list[dict]
+        Top-k merged results, sorted by score descending. Same format as retrieve().
+    """
     fixed = retrieve(query, k=k, strategy="fixed")
     para  = retrieve(query, k=k, strategy="paragraph")
 

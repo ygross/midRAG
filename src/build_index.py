@@ -54,7 +54,30 @@ BATCH_SIZE    = 128
 def embed_chunks(model: SentenceTransformer,
                  chunks: list[dict],
                  batch_size: int = BATCH_SIZE) -> np.ndarray:
-    """Return L2-normalised float32 embeddings, shape (N, 384)."""
+    """
+    Compute L2-normalised embeddings for a list of text chunks.
+
+    Extracts the 'text' field from each chunk dict, encodes them in batches
+    using the provided SentenceTransformer model, and returns a float32 array.
+
+    L2 normalisation (normalize_embeddings=True) ensures that cosine similarity
+    equals the dot product, which makes retrieval faster and more accurate.
+
+    Parameters
+    ----------
+    model      : SentenceTransformer
+        Loaded embedding model (e.g. 'all-MiniLM-L6-v2').
+    chunks     : list[dict]
+        List of chunk objects — each must have a 'text' key.
+    batch_size : int
+        Number of texts encoded per GPU/CPU batch. Larger batches are faster
+        but use more memory. Default is 128.
+
+    Returns
+    -------
+    np.ndarray
+        Float32 array of shape (N, 384), one row per chunk, L2-normalised.
+    """
     texts = [c["text"] for c in chunks]
     print(f"  Embedding {len(texts)} chunks in batches of {batch_size}…")
     t0 = time.time()
@@ -73,7 +96,25 @@ def embed_chunks(model: SentenceTransformer,
 # ---------------------------------------------------------------------------
 
 def save_index(chunks: list[dict], embeddings: np.ndarray, name: str):
-    """Save embeddings (.npy) and chunk metadata (.json) to index/."""
+    """
+    Persist the vector index to disk as two files in index/.
+
+    Saves:
+    - index/{name}_embeddings.npy  — float32 numpy array, shape (N, 384)
+    - index/{name}_chunks.json     — list of chunk metadata objects (parallel to embeddings)
+
+    The two files are always written together and must stay in sync.
+    Re-running build_index.py overwrites both files for full reproducibility.
+
+    Parameters
+    ----------
+    chunks     : list[dict]
+        Chunk metadata objects — must be parallel to the embeddings rows.
+    embeddings : np.ndarray
+        Float32 array of shape (N, 384) from embed_chunks().
+    name       : str
+        Strategy name, e.g. 'fixed' or 'paragraph'. Used as the filename prefix.
+    """
     INDEX_DIR.mkdir(parents=True, exist_ok=True)
     emb_path   = INDEX_DIR / f"{name}_embeddings.npy"
     meta_path  = INDEX_DIR / f"{name}_chunks.json"
@@ -88,7 +129,22 @@ def save_index(chunks: list[dict], embeddings: np.ndarray, name: str):
 
 
 def verify_index(name: str, model: SentenceTransformer):
-    """Load saved index and do a test query to confirm readability."""
+    """
+    Sanity-check the saved index by loading it and running a test query.
+
+    Reads both index files back from disk, embeds a dummy query, performs
+    a cosine search, and prints the top-scoring chunk ID. This confirms that:
+    - The .npy and .json files are readable
+    - Their shapes/lengths are consistent
+    - The dot-product search returns a valid result
+
+    Parameters
+    ----------
+    name  : str
+        Strategy name ('fixed' or 'paragraph') — used to locate the files.
+    model : SentenceTransformer
+        The embedding model used during build (same model ensures compatibility).
+    """
     emb_path  = INDEX_DIR / f"{name}_embeddings.npy"
     meta_path = INDEX_DIR / f"{name}_chunks.json"
 
@@ -109,6 +165,31 @@ def verify_index(name: str, model: SentenceTransformer):
 # ---------------------------------------------------------------------------
 
 def build_index(strategy: str = "both", chunk_size: int = 400, overlap: int = 50):
+    """
+    Full pipeline: load PDFs → chunk → embed → save numpy index.
+
+    This is the main entry point for building (or rebuilding) the vector index
+    from scratch. It is fully reproducible: deleting index/ and running again
+    produces byte-identical output given the same PDFs and parameters.
+
+    Steps:
+    1. Load all PDFs from data/raw/ using load_all_documents()
+    2. Chunk documents using the requested strategy (fixed / paragraph / both)
+    3. Save processed chunks to data/processed/*.jsonl for reproducibility
+    4. Load the SentenceTransformer embedding model
+    5. Embed all chunks (batch_size=128, L2-normalised)
+    6. Save embeddings + metadata to index/
+    7. Verify the saved index with a test query
+
+    Parameters
+    ----------
+    strategy   : str
+        Which chunking strategy to build: 'fixed', 'paragraph', or 'both'.
+    chunk_size : int
+        Character length of each fixed-size chunk (ignored for paragraph strategy).
+    overlap    : int
+        Character overlap between consecutive fixed-size chunks.
+    """
     print("=" * 60)
     print("Pediatric RAG — Index Builder (numpy backend)")
     print("=" * 60)

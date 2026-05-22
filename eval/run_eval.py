@@ -41,6 +41,26 @@ GOLD_PATH     = Path(__file__).parent / "gold_set.jsonl"
 # ---------------------------------------------------------------------------
 
 def load_gold_set(path: Path = GOLD_PATH) -> list[dict]:
+    """
+    Load the gold evaluation set from a JSON Lines file.
+
+    Each line in the file is a JSON object representing one evaluation question
+    with the following fields:
+    - 'question'            : str  — the evaluation question
+    - 'reference_answer'    : str  — expected answer (for human inspection)
+    - 'must_cite_chunk_ids' : list[str] — gold chunk IDs the system should retrieve
+    - 'category'            : str  — question type (factual/numerical/temporal/etc.)
+
+    Parameters
+    ----------
+    path : Path
+        Path to the gold set .jsonl file. Defaults to eval/gold_set.jsonl.
+
+    Returns
+    -------
+    list[dict]
+        List of evaluation question objects.
+    """
     records = []
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
@@ -105,7 +125,40 @@ def evaluate(gold: list[dict],
              limit: int | None = None,
              verbose: bool = True) -> dict:
     """
-    Run the full gold set through the pipeline and return metrics.
+    Run the RAG pipeline on the gold question set and compute retrieval metrics.
+
+    For each question in the gold set:
+    1. Calls answer() to get the top-k retrieved chunks and generated answer
+    2. Computes Hit@k using chunk_hits_at_k() (exact + soft ±2-page match)
+    3. Computes Precision@k — fraction of retrieved chunks from the correct source
+    4. Records latency per question
+
+    Prints the first 10 answers for manual quality inspection (Correct /
+    Partially correct / Incorrect / Hallucinated), then prints aggregate metrics
+    and a per-category breakdown.
+
+    Parameters
+    ----------
+    gold     : list[dict]
+        Gold evaluation questions loaded by load_gold_set().
+    k        : int
+        Number of chunks to retrieve per question.
+    strategy : str
+        Chunking strategy: 'fixed' or 'paragraph'.
+    limit    : int | None
+        If set, only evaluate the first N questions (useful for quick tests).
+    verbose  : bool
+        If True, prints individual question results for the first 10 questions.
+
+    Returns
+    -------
+    dict with keys:
+        'hit_at_k'       : float  — fraction of questions with a correct chunk in top-k
+        'precision_at_k' : float  — average fraction of retrieved chunks from correct source
+        'mean_latency'   : float  — average seconds per question
+        'strategy'       : str
+        'k'              : int
+        'n'              : int    — number of questions evaluated
     """
     if limit:
         gold = gold[:limit]

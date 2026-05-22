@@ -14,7 +14,25 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 def clean_text(text: str) -> str:
-    """Remove artefacts common in PDF-extracted text."""
+    """
+    Remove common artefacts from PDF-extracted text.
+
+    Operations performed:
+    - Collapses 3+ consecutive newlines into 2 (preserves paragraph breaks)
+    - Collapses multiple spaces/tabs into a single space
+    - Removes page-number noise lines (e.g. '• 30 •')
+    - Removes lone bullet characters on their own line (AAP uses 'z' as a bullet)
+
+    Parameters
+    ----------
+    text : str
+        Raw text extracted by PyMuPDF (fitz).
+
+    Returns
+    -------
+    str
+        Cleaned text, stripped of leading/trailing whitespace.
+    """
     # Collapse repeated whitespace / newlines (but keep paragraph breaks)
     text = re.sub(r'\n{3,}', '\n\n', text)
     text = re.sub(r'[ \t]+', ' ', text)
@@ -99,8 +117,23 @@ def load_pdf(pdf_path: str, doc_id_prefix: str) -> list[dict]:
 
 def load_all_documents(data_dir: str = "data/raw") -> list[dict]:
     """
-    Load all PDFs found in data_dir.
-    Assigns a short prefix based on filename.
+    Load all PDF files found in data_dir and return them as page-level documents.
+
+    Automatically assigns a short doc_id prefix based on keywords in the filename:
+    - Files containing 'Kliegman' → prefix 'kliegman'
+    - Files containing 'Case-Based' → prefix 'aap'
+    - Any other PDF → prefix 'doc'
+
+    Parameters
+    ----------
+    data_dir : str
+        Path to the directory containing raw PDF files.
+
+    Returns
+    -------
+    list[dict]
+        Combined list of all page-level documents from all PDFs,
+        each in the format returned by load_pdf().
     """
     data_path = Path(data_dir)
     prefix_map = {
@@ -234,6 +267,18 @@ def chunk_paragraph(documents: list[dict],
 # ---------------------------------------------------------------------------
 
 def save_jsonl(records: list[dict], path: str):
+    """
+    Write a list of dicts to a JSON Lines file (one JSON object per line).
+
+    Creates parent directories automatically if they do not exist.
+
+    Parameters
+    ----------
+    records : list[dict]
+        Data to persist — typically chunk or document objects.
+    path : str
+        Destination file path (e.g. 'data/processed/chunks_fixed.jsonl').
+    """
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         for record in records:
@@ -242,6 +287,21 @@ def save_jsonl(records: list[dict], path: str):
 
 
 def load_jsonl(path: str) -> list[dict]:
+    """
+    Read a JSON Lines file and return its contents as a list of dicts.
+
+    Skips blank lines silently.
+
+    Parameters
+    ----------
+    path : str
+        Path to the .jsonl file to read.
+
+    Returns
+    -------
+    list[dict]
+        Parsed records in the same order as the file.
+    """
     records = []
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
