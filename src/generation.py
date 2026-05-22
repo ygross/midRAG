@@ -11,8 +11,13 @@ Public API:
 
 import os
 import sys
+import time
 from pathlib import Path
 import anthropic
+from dotenv import load_dotenv
+
+# Load .env from project root regardless of where the script is run from
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 # Local model cache — avoids Windows symlink errors ([Errno 22]) that occur
 # when huggingface_hub tries to create symlinks in ~/.cache/huggingface/hub/
@@ -86,13 +91,23 @@ def _generate_anthropic(question: str,
         f"Answer:"
     )
 
-    response = client.messages.create(
-        model=model,
-        max_tokens=max_tokens,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
-    )
-    return response.content[0].text.strip()
+    # Retry up to 8 times on overload (529) with exponential backoff
+    for attempt in range(8):
+        try:
+            response = client.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                system=SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": user_message}],
+            )
+            return response.content[0].text.strip()
+        except anthropic.APIStatusError as e:
+            if e.status_code == 529 and attempt < 7:
+                wait = min(2 ** attempt, 60)  # 1,2,4,8,16,32,60,60s
+                print(f"  ⚠️  API overloaded — retrying in {wait}s... (attempt {attempt+1}/8)")
+                time.sleep(wait)
+            else:
+                raise
 
 
 # ── HuggingFace local backend ──────────────────────────────────────────────────

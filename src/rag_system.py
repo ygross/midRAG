@@ -9,6 +9,10 @@ import sys
 import re
 import time
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env from project root regardless of where the script is run from
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 sys.path.insert(0, str(Path(__file__).parent))
 

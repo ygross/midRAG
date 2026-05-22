@@ -24,6 +24,10 @@ import argparse
 import statistics
 from pathlib import Path
 
+# Load .env from project root before importing src modules
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / ".env")
+
 # Make src/ importable
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from rag_system import answer
