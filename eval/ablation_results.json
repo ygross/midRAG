@@ -116,5 +116,24 @@
       "numerical": 1.0
     },
     "timestamp": "2026-05-20 14:57"
+  },
+  {
+    "label": "fixed k=8",
+    "strategy": "fixed",
+    "k": 8,
+    "limit": 52,
+    "hit_at_k": 0.885,
+    "precision": 0.853,
+    "latency": 4.94,
+    "total_time": 257.0,
+    "notes": "",
+    "categories": {
+      "factual": 0.875,
+      "numerical": 0.8,
+      "temporal": 1.0,
+      "negation": 1.0,
+      "comparison": 0.8
+    },
+    "timestamp": "2026-05-22 19:12"
   }
 ]
