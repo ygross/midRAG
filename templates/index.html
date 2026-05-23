@@ -122,6 +122,11 @@
     .sidebar h3 { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #5a7a9a; margin-bottom: 10px; }
     .sample-btn { display: block; width: 100%; text-align: left; background: #f7fafd; border: 1px solid #e0eaf4; border-radius: 8px; padding: 9px 12px; font-size: .79rem; color: #2a3a5a; cursor: pointer; margin-bottom: 6px; line-height: 1.45; transition: all .15s; font-family: inherit; }
     .sample-btn:hover { background: #e8f2fc; border-color: #2e6da4; color: #2e6da4; }
+    .sample-btn.out-of-scope { background: #fffbf0; border-color: #f0c060; color: #7a5500; }
+    .sample-btn.out-of-scope:hover { background: #fff3cc; border-color: #d4920a; color: #6a4400; }
+    .out-scope-label { display: flex; align-items: center; gap: 6px; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #b07800; margin-bottom: 8px; margin-top: 2px; }
+    .out-scope-label .oos-badge { background: #ffd060; color: #7a4400; border-radius: 4px; padding: 1px 6px; font-size: .65rem; }
+    .out-scope-hint { font-size: .72rem; color: #8a6820; background: #fffbf0; border: 1px solid #f0d080; border-radius: 7px; padding: 7px 10px; margin-bottom: 10px; line-height: 1.5; }
     .sidebar-section { margin-bottom: 24px; }
 
     .error-card { background: #fdf0f0; border: 1px solid #f5c6cb; border-radius: 10px; padding: 16px 20px; color: #721c24; font-size: .88rem; line-height: 1.7; }
@@ -162,6 +167,11 @@
     html.dark .modal-meta, html.dark .modal-chunk-id { color: #5abedc; }
     html.dark .sample-btn { background: #162234; border-color: #1e3a52; color: #8aaac8; }
     html.dark .sample-btn:hover { background: #0d2236; border-color: #5abedc; color: #5abedc; }
+    html.dark .sample-btn.out-of-scope { background: #1e1600; border-color: #6a4e00; color: #d4a840; }
+    html.dark .sample-btn.out-of-scope:hover { background: #2a1e00; border-color: #c49020; color: #f0c850; }
+    html.dark .out-scope-label { color: #c49020; }
+    html.dark .out-scope-label .oos-badge { background: #6a4400; color: #f0c050; }
+    html.dark .out-scope-hint { background: #1e1600; border-color: #5a3e00; color: #b07820; }
     html.dark .sidebar h3 { color: #5a7a9a; }
     html.dark .hf-pill { background: #0d2236; border-color: #1e3a52; }
     html.dark .hf-state-label { color: #6a8aaa; }
@@ -292,6 +302,16 @@
       <button class="sample-btn" onclick="fillAndAsk(this)">What immune disorders can cause hemoptysis in children?</button>
       <button class="sample-btn" onclick="fillAndAsk(this)">What counseling should asthmatic families receive about secondhand smoke?</button>
       <button class="sample-btn" onclick="fillAndAsk(this)">What physical exam should be done on a newborn with respiratory distress?</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="out-scope-label">⚠️ Out-of-scope <span class="oos-badge">NOT IN CORPUS</span></div>
+      <div class="out-scope-hint">These questions are <strong>outside the RAG corpus</strong>. The system should respond "information not found" — demonstrating grounded retrieval, not hallucination.</div>
+      <button class="sample-btn out-of-scope" onclick="fillAndAsk(this)">What is the recommended dose of ibuprofen for a 10 kg adult?</button>
+      <button class="sample-btn out-of-scope" onclick="fillAndAsk(this)">How is type 2 diabetes managed in elderly patients?</button>
+      <button class="sample-btn out-of-scope" onclick="fillAndAsk(this)">What are the side effects of metformin in adults?</button>
+      <button class="sample-btn out-of-scope" onclick="fillAndAsk(this)">What is the capital of France?</button>
+      <button class="sample-btn out-of-scope" onclick="fillAndAsk(this)">What are the symptoms of COVID-19 in adults?</button>
     </div>
   </aside>
 
