@@ -120,8 +120,23 @@
 
     /* ── Sidebar ── */
     .sidebar h3 { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #5a7a9a; margin-bottom: 10px; }
-    .sample-btn { display: block; width: 100%; text-align: left; background: #f7fafd; border: 1px solid #e0eaf4; border-radius: 8px; padding: 9px 12px; font-size: .79rem; color: #2a3a5a; cursor: pointer; margin-bottom: 6px; line-height: 1.45; transition: all .15s; font-family: inherit; }
+    .sample-btn { display: block; width: 100%; text-align: left; background: #f7fafd; border: 1px solid #e0eaf4; border-radius: 8px; padding: 8px 12px 8px 10px; font-size: .79rem; color: #2a3a5a; cursor: pointer; margin-bottom: 6px; line-height: 1.45; transition: all .15s; font-family: inherit; }
     .sample-btn:hover { background: #e8f2fc; border-color: #2e6da4; color: #2e6da4; }
+    .q-type { display: inline-block; font-size: .6rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; border-radius: 3px; padding: 1px 5px; margin-right: 5px; vertical-align: middle; line-height: 1.6; white-space: nowrap; }
+    .qt-factual   { background: #ddeeff; color: #1a4a8a; }
+    .qt-numerical { background: #d4f5e8; color: #0a5a30; }
+    .qt-negation  { background: #ffe0d4; color: #8a2a0a; }
+    .qt-compare   { background: #e8d8ff; color: #4a1a8a; }
+    .qt-case      { background: #fff0b8; color: #7a5200; }
+    .qt-multi     { background: #d8efd8; color: #1a5a1a; }
+    .qtype-legend { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+    .qtype-legend .q-type { cursor: default; }
+    html.dark .qt-factual   { background: #0a2040; color: #80b8f0; }
+    html.dark .qt-numerical { background: #082818; color: #60d090; }
+    html.dark .qt-negation  { background: #3a1000; color: #f09060; }
+    html.dark .qt-compare   { background: #200a40; color: #c090f8; }
+    html.dark .qt-case      { background: #2a1a00; color: #e0b040; }
+    html.dark .qt-multi     { background: #0a2a0a; color: #80d080; }
     .sample-btn.out-of-scope { background: #fffbf0; border-color: #f0c060; color: #7a5500; }
     .sample-btn.out-of-scope:hover { background: #fff3cc; border-color: #d4920a; color: #6a4400; }
     .out-scope-label { display: flex; align-items: center; gap: 6px; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #b07800; margin-bottom: 8px; margin-top: 2px; }
@@ -301,17 +316,35 @@
 
   <aside class="sidebar">
     <div class="sidebar-section">
-      <h3>📋 Sample Questions</h3>
-      <button class="sample-btn" onclick="fillAndAsk(this)">What are the discharge criteria for a child with febrile seizure?</button>
-      <button class="sample-btn" onclick="fillAndAsk(this)">What is BRUE and what are the criteria for low-risk classification?</button>
-      <button class="sample-btn" onclick="fillAndAsk(this)">What are the bacterial causes of acute gastroenteritis?</button>
-      <button class="sample-btn" onclick="fillAndAsk(this)">What is the most urgent diagnosis to rule out in scrotal pain?</button>
-      <button class="sample-btn" onclick="fillAndAsk(this)">What monitoring is recommended for higher-risk BRUE infants?</button>
-      <button class="sample-btn" onclick="fillAndAsk(this)">What does the Ballard score assess?</button>
-      <button class="sample-btn" onclick="fillAndAsk(this)">What CDC hotline is mentioned in the asthma case?</button>
-      <button class="sample-btn" onclick="fillAndAsk(this)">What immune disorders can cause hemoptysis in children?</button>
-      <button class="sample-btn" onclick="fillAndAsk(this)">What counseling should asthmatic families receive about secondhand smoke?</button>
-      <button class="sample-btn" onclick="fillAndAsk(this)">What physical exam should be done on a newborn with respiratory distress?</button>
+      <h3>📋 RAG Demo Questions</h3>
+      <div class="qtype-legend">
+        <span class="q-type qt-factual">Factual</span>
+        <span class="q-type qt-numerical">Numerical</span>
+        <span class="q-type qt-negation">Negation</span>
+        <span class="q-type qt-compare">Compare</span>
+        <span class="q-type qt-case">Case</span>
+        <span class="q-type qt-multi">Multi-chunk</span>
+      </div>
+
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-factual">Factual</span>What are the discharge criteria for a child with febrile seizure?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-factual">Factual</span>What are the bacterial causes of acute gastroenteritis?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-factual">Factual</span>What is the most urgent diagnosis to rule out in scrotal pain?</button>
+
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-numerical">Numerical</span>For how long should higher-risk BRUE infants be monitored with pulse oximetry?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-numerical">Numerical</span>How long does acute rhinorrhea last by definition?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-numerical">Numerical</span>What is the age of Emma in Case 1 of the AAP guide?</button>
+
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-negation">Negation</span>Can a child with active seizure activity be safely discharged?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-negation">Negation</span>Does the AAP guide recommend against pulse oximetry monitoring for BRUE infants?</button>
+
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-compare">Compare</span>How does acute rhinorrhea differ from chronic rhinorrhea?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-compare">Compare</span>How does the evaluation differ between lower-risk and higher-risk BRUE infants?</button>
+
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-case">Case</span>What is the presenting complaint of 16-month-old Simon?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-case">Case</span>What CDC hotline is mentioned in the asthma case?</button>
+
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-multi">Multi-chunk</span>What immune disorders can cause hemoptysis in children?</button>
+      <button class="sample-btn" onclick="fillAndAsk(this)"><span class="q-type qt-multi">Multi-chunk</span>What physical exam components should be done on a newborn with respiratory distress?</button>
     </div>
 
     <div class="sidebar-section">
@@ -398,7 +431,10 @@
   }
 
   function fillAndAsk(btn) {
-    qi.value = btn.textContent.trim();
+    // Strip type-badge text (span.q-type) — get only the question text
+    const clone = btn.cloneNode(true);
+    clone.querySelectorAll(".q-type").forEach(el => el.remove());
+    qi.value = clone.textContent.trim();
     qi.style.height = "auto"; qi.style.height = qi.scrollHeight+"px";
     ask();
   }
