@@ -19,6 +19,7 @@ Storage (no external vector DB required — plain numpy files):
 """
 
 import argparse
+import datetime
 import json
 import sys
 import time
@@ -128,6 +129,59 @@ def save_index(chunks: list[dict], embeddings: np.ndarray, name: str):
     print(f"  Saved chunk metadata  → {meta_path.name}")
 
 
+def save_index_metadata(strategies_built: list,
+                        chunks_per_strategy: dict,
+                        chunk_size: int,
+                        overlap: int):
+    """
+    Write a human-readable JSON file describing the current index build.
+
+    Saves index/index_metadata.json with all parameters used to produce the
+    current index, so the index is self-documenting. Useful for debugging,
+    reproducibility checks, and displaying index info in the UI without
+    reading the full .npy files.
+
+    Parameters
+    ----------
+    strategies_built    : list[str]
+        Which strategies were built, e.g. ['fixed', 'paragraph'].
+    chunks_per_strategy : dict[str, int]
+        Number of chunks produced per strategy, e.g. {'fixed': 10107, 'paragraph': 5250}.
+    chunk_size          : int
+        Character window size used for the fixed-size strategy.
+    overlap             : int
+        Character overlap between consecutive fixed-size chunks.
+
+    Output file example
+    -------------------
+    {
+        "embedding_model":   "all-MiniLM-L6-v2",
+        "embedding_dim":     384,
+        "chunk_size":        400,
+        "overlap":           50,
+        "strategies_built":  ["fixed", "paragraph"],
+        "num_chunks":        {"fixed": 10107, "paragraph": 5250},
+        "total_chunks":      15357,
+        "created_at":        "2026-05-23T10:00:00Z"
+    }
+    """
+    INDEX_DIR.mkdir(parents=True, exist_ok=True)
+    metadata = {
+        "embedding_model":   EMBED_MODEL,
+        "embedding_dim":     384,
+        "chunk_size":        chunk_size,
+        "overlap":           overlap,
+        "strategies_built":  strategies_built,
+        "num_chunks":        chunks_per_strategy,
+        "total_chunks":      sum(chunks_per_strategy.values()),
+        "created_at":        datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    meta_path = INDEX_DIR / "index_metadata.json"
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2, ensure_ascii=False)
+    print(f"  Saved index metadata  → {meta_path.name}")
+
+
 def verify_index(name: str, model: SentenceTransformer):
     """
     Sanity-check the saved index by loading it and running a test query.
@@ -230,7 +284,19 @@ def build_index(strategy: str = "both", chunk_size: int = 400, overlap: int = 50
         para_embs = embed_chunks(model, para_chunks)
         save_index(para_chunks, para_embs, "paragraph")
 
-    # 5. Verify
+    # 5. Save metadata
+    chunks_per_strategy = {}
+    if strategy in ("fixed", "both") and fixed_chunks:
+        chunks_per_strategy["fixed"] = len(fixed_chunks)
+    if strategy in ("paragraph", "both") and para_chunks:
+        chunks_per_strategy["paragraph"] = len(para_chunks)
+    strategies_list = [s for s in ["fixed", "paragraph"]
+                       if s in chunks_per_strategy]
+    print("\n  Writing index metadata…")
+    save_index_metadata(strategies_list, chunks_per_strategy,
+                        chunk_size=chunk_size, overlap=overlap)
+
+    # 6. Verify
     print("\n  Verifying index files are readable…")
     if strategy in ("fixed", "both"):
         verify_index("fixed", model)

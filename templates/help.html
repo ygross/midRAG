@@ -894,9 +894,14 @@
               <div class="fn-meta"><span class="fn-tag in">in: strategy name + model</span><span class="fn-tag out">out: prints top chunk ID or raises error</span></div>
             </div>
             <div class="fn-item">
+              <div class="fn-name">save_index_metadata(strategies_built, chunks_per_strategy, chunk_size, overlap)</div>
+              <div class="fn-desc">Writes <code>index/index_metadata.json</code> — a self-documenting record of exactly how the index was built: which embedding model, dimension, chunk size, overlap, strategies built, chunk counts per strategy, total chunks, and UTC timestamp. Lets the UI and future developers inspect the index without reading the binary <code>.npy</code> files.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: build parameters + chunk counts</span><span class="fn-tag out">out: index/index_metadata.json</span><span class="fn-tag note">written automatically by build_index()</span></div>
+            </div>
+            <div class="fn-item">
               <div class="fn-name">build_index(strategy, chunk_size, overlap)</div>
-              <div class="fn-desc">The main build pipeline: load PDFs → chunk → save JSONL → load embedding model → embed → save index → verify. Fully reproducible — deleting <code>index/</code> and re-running produces the same output. Run once before starting the web server.</div>
-              <div class="fn-meta"><span class="fn-tag in">strategy: fixed|paragraph|both · chunk_size · overlap</span><span class="fn-tag out">out: index/ files + data/processed/ files</span></div>
+              <div class="fn-desc">The main build pipeline: load PDFs → chunk → save JSONL → load embedding model → embed → save index → save metadata → verify. Fully reproducible — deleting <code>index/</code> and re-running produces the same output. Run once before starting the web server.</div>
+              <div class="fn-meta"><span class="fn-tag in">strategy: fixed|paragraph|both · chunk_size · overlap</span><span class="fn-tag out">out: index/ files + data/processed/ files + index_metadata.json</span></div>
             </div>
           </div>
         </div>
@@ -922,8 +927,8 @@
             </div>
             <div class="fn-item">
               <div class="fn-name">retrieve_hybrid(query, k=5)</div>
-              <div class="fn-desc">Runs <code>retrieve()</code> on both strategies independently, merges results, deduplicates by <code>(source, page)</code> keeping the higher score, and returns the overall top-k. Useful when fixed strategy misses something paragraph catches, or vice versa.</div>
-              <div class="fn-meta"><span class="fn-tag in">in: query str + k</span><span class="fn-tag out">out: merged top-k list[dict]</span><span class="fn-tag note">2× embedding cost</span></div>
+              <div class="fn-desc">Runs <code>retrieve()</code> on both strategies independently, merges results, deduplicates by <code>(source, page)</code> keeping the higher score, and returns the overall top-k. Now accessible via <code>answer(strategy="hybrid")</code> — no need to call this directly.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: query str + k</span><span class="fn-tag out">out: merged top-k list[dict]</span><span class="fn-tag note">2× embedding cost · called by answer() when strategy="hybrid"</span></div>
             </div>
           </div>
         </div>
@@ -970,12 +975,12 @@
               <div class="fn-meta"><span class="fn-tag in">in: answer str + retrieved chunks</span><span class="fn-tag out">out: list[str] of chunk IDs</span></div>
             </div>
             <div class="fn-item">
-              <div class="fn-name">answer(question, k=5, strategy='fixed', model='claude-haiku-4-5-20251001')</div>
-              <div class="fn-desc">The complete RAG pipeline in one call. Runs: <strong>(1)</strong> retrieve top-k chunks → <strong>(2)</strong> generate grounded answer → <strong>(3)</strong> extract cited sources. Also times each step in milliseconds. Returns a structured dict with <code>answer</code>, <code>sources</code>, <code>retrieved_chunks</code>, and <code>_timings</code>.</div>
+              <div class="fn-name">answer(question, k=5, strategy='fixed'|'paragraph'|'hybrid', model='claude-haiku-4-5-20251001')</div>
+              <div class="fn-desc">The complete RAG pipeline in one call. Runs: <strong>(1)</strong> retrieve top-k chunks → <strong>(2)</strong> generate grounded answer → <strong>(3)</strong> extract cited sources. Supports three retrieval strategies: <code>'fixed'</code> (default), <code>'paragraph'</code>, or <code>'hybrid'</code> — hybrid merges both indexes and deduplicates by page for maximum coverage. Also times each step in milliseconds.</div>
               <div class="fn-meta">
-                <span class="fn-tag in">in: question str</span>
+                <span class="fn-tag in">in: question str · strategy: fixed|paragraph|hybrid</span>
                 <span class="fn-tag out">out: {answer, sources, retrieved_chunks, _timings}</span>
-                <span class="fn-tag note">this is the Required System Interface from the assignment</span>
+                <span class="fn-tag note">Required System Interface from assignment · strategy="hybrid" recommended for best coverage</span>
               </div>
             </div>
           </div>
@@ -994,10 +999,11 @@ Embeddings  np.ndarray (N × 384)
   ↓  build_index.save_index()
 index/*.npy  +  index/*.json
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ at query time ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Question (str)
+answer(question, strategy='fixed'|'paragraph'|'hybrid')
   ↓  retrieval._get_model().encode()
 Query vector (384-dim)
-  ↓  retrieval.retrieve()  →  embeddings @ qvec.T  →  top-k
+  ↓  strategy='fixed'/'paragraph' → retrieve()   →  embeddings @ qvec.T  →  top-k
+  ↓  strategy='hybrid'            → retrieve_hybrid() → fixed+paragraph merged, dedup by page
 Chunks  [{chunk_id, text, score, metadata}]
   ↓  generation._format_context()  +  SYSTEM_PROMPT
 Prompt (system + user with context block)

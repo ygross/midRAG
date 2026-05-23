@@ -496,9 +496,9 @@ midRAG/
               STEP 1 — BUILD
 
 
-              #### PDF → chunks → embeddings → saved index
+              #### PDF → chunks → embeddings → saved index + metadata
 
-              Reads both PDFs with PyMuPDF, splits text into chunks (fixed-size sliding window or paragraph-aware), encodes every chunk with `all-MiniLM-L6-v2`, L2-normalises the vectors, and saves `.npy` + `.json` to `index/`.
+              Reads both PDFs with PyMuPDF, splits text into chunks (fixed-size sliding window or paragraph-aware), encodes every chunk with `all-MiniLM-L6-v2`, L2-normalises the vectors, saves `.npy` + `.json` to `index/`, and writes `index/index_metadata.json` (embedding model, chunk size, overlap, strategies, chunk counts, timestamp).
 
               **When to run manually:** when you change chunk size / overlap, add a new PDF, or the index is missing.
 
@@ -518,11 +518,12 @@ midRAG/
 
               #### Query → 384-dim vector → cosine search → top-k chunks
 
-              Loads the pre-built `.npy` index into memory (cached after first call), embeds the query with the same sentence-transformer, computes dot-product similarity against all chunk vectors, and returns the top-k results with scores and metadata.
+              Loads the pre-built `.npy` index into memory (cached after first call), embeds the query with the same sentence-transformer, computes dot-product similarity against all chunk vectors, and returns the top-k results with scores and metadata. `retrieve_hybrid()` merges both fixed and paragraph indexes and is now accessible via `answer(strategy="hybrid")`.
 
-              **When to open this file:** to change the retrieval model, add hybrid search, or debug why a question retrieves wrong chunks.
+              **When to open this file:** to change the retrieval model, or debug why a question retrieves wrong chunks.
 
-              retrieve(query, k=5, strategy='fixed')
+              retrieve(query, k=5, strategy='fixed'|'paragraph')
+              retrieve_hybrid(query, k=5)  ← called automatically by answer(strategy='hybrid')
 
 
 
@@ -555,11 +556,11 @@ midRAG/
 
               #### The complete pipeline in one function call
 
-              Calls `retrieve()` → `generate_answer()` → extracts cited sources → returns a structured result dict. Also times each step (`embed_retrieve_ms`, `generate_ms`) for the Pipeline Trace panel.
+              Routes to `retrieve()` or `retrieve_hybrid()` based on `strategy`, then calls `generate_answer()`, extracts cited sources, and returns a structured result dict. Also times each step (`embed_retrieve_ms`, `generate_ms`) for the Pipeline Trace panel.
 
               **When to use directly:** quick smoke-test from terminal, or to import `answer()` into a Jupyter notebook without starting the web server.
 
-              answer(question, k=5, strategy='fixed', model='...')
+              answer(question, k=5, strategy='fixed'|'paragraph'|'hybrid', model='...')
 
 
 

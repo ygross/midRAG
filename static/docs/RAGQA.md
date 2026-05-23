@@ -452,8 +452,14 @@ Step 4
 
 
 
+    QDid you implement hybrid retrieval? How does it work?▶
+    **Yes.** `retrieve_hybrid()` in `retrieval.py` merges results from both fixed-size and paragraph indexes, deduplicates by `(source, page)` keeping the highest-scoring chunk per page, and returns the overall top-k. It is now fully wired into `answer()` via `strategy="hybrid"` — calling `answer(question, strategy="hybrid")` routes to `retrieve_hybrid()` automatically. Cost: 2× embedding lookups (~10–30ms extra), negligible compared to the LLM call. A cross-encoder reranker remains the top future improvement for higher precision.
+
+    QWhat is stored in index/index_metadata.json?▶
+    `build_index.py` now writes `index/index_metadata.json` after every build. It records: `embedding_model`, `embedding_dim` (384), `chunk_size`, `overlap`, `strategies_built`, `num_chunks` per strategy, `total_chunks`, and `created_at` (UTC timestamp). This makes the index self-documenting — you can inspect build parameters without reading binary `.npy` headers or re-running the build.
+
     QDid you do reranking?▶
-    No. We retrieve top-k by cosine similarity and pass them directly to the LLM in score order. A **cross-encoder reranker** (e.g. `cross-encoder/ms-marco-MiniLM-L-6-v2`) would re-score each (query, chunk) pair jointly and could improve precision, especially for complex queries. It wasn't implemented due to the added latency (~100–300ms extra per query) and complexity.
+    No cross-encoder reranker was implemented. `retrieve_hybrid()` (now accessible via `answer(strategy="hybrid")`) implements a simple merge-by-score across both chunking strategies — not a true cross-encoder rerank. A cross-encoder (e.g. `cross-encoder/ms-marco-MiniLM-L-6-v2`) remains the top identified future improvement.
 
 
 

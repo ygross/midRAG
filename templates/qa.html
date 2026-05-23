@@ -227,7 +227,9 @@
   <a class="toc-a" href="#data"><strong style="color:#2e6da4;">1</strong> &nbsp;Corpus &amp; Data</a>
   <a class="toc-a" href="#chunking"><strong style="color:#2e6da4;">2</strong> &nbsp;Chunking</a>
   <a class="toc-a" href="#embeddings"><strong style="color:#2e6da4;">3</strong> &nbsp;Embeddings &amp; Index</a>
+  <a class="toc-a toc-sub" href="#embeddings">↳ index_metadata.json</a>
   <a class="toc-a" href="#retrieval"><strong style="color:#2e6da4;">4</strong> &nbsp;Retrieval</a>
+  <a class="toc-a toc-sub" href="#retrieval">↳ Hybrid retrieval</a>
   <a class="toc-a" href="#prompt"><strong style="color:#2e6da4;">5</strong> &nbsp;Prompt &amp; Generation</a>
   <a class="toc-a" href="#citations"><strong style="color:#2e6da4;">6</strong> &nbsp;Citations</a>
   <a class="toc-a" href="#evaluation"><strong style="color:#2e6da4;">7</strong> &nbsp;Evaluation</a>
@@ -472,6 +474,25 @@
     <div class="qa-a"><p><strong>Cosine similarity</strong>, implemented via dot product on L2-normalized vectors. The formula: <code>score = query_vec @ chunk_vec.T</code> (matrix multiplication). Scores range from -1 to 1; in practice they range ~0.3–0.85 for relevant chunks in our corpus.</p></div>
   </div>
 
+  <div class="qa-card">
+    <div class="qa-q" onclick="toggle(this)"><span class="q-icon">Q</span><span class="q-text">What is stored in index/index_metadata.json?</span><span class="arrow">▶</span></div>
+    <div class="qa-a">
+      <p><code>build_index.py</code> now writes <code>index/index_metadata.json</code> after every build. It records exactly how the current index was built:</p>
+      <ul>
+        <li><code>embedding_model</code>: <code>"all-MiniLM-L6-v2"</code></li>
+        <li><code>embedding_dim</code>: <code>384</code></li>
+        <li><code>chunk_size</code>: character window (e.g. <code>400</code>)</li>
+        <li><code>overlap</code>: character overlap (e.g. <code>50</code>)</li>
+        <li><code>strategies_built</code>: e.g. <code>["fixed", "paragraph"]</code></li>
+        <li><code>num_chunks</code>: per-strategy counts (e.g. <code>{"fixed": 10107, "paragraph": 5250}</code>)</li>
+        <li><code>total_chunks</code>: sum across strategies</li>
+        <li><code>created_at</code>: UTC timestamp of when the index was built</li>
+      </ul>
+      <p><strong>Why this matters:</strong> Without this file, you would have to read binary <code>.npy</code> headers and re-run the build to know what parameters were used. The metadata file makes the index self-documenting and allows the Build page UI to display index stats without re-loading 14 MB of embeddings.</p>
+      <div class="tip">If the index_metadata.json does not exist (e.g. on first clone), just run <code>python src/build_index.py</code> — it is created automatically after every build.</div>
+    </div>
+  </div>
+
   <div class="qa-card deep">
     <div class="qa-q" onclick="toggle(this)"><span class="q-icon">🟡</span><span class="q-text">Deep: Why can two sentences with different words be close in embedding space?</span><span class="arrow">▶</span></div>
     <div class="qa-a"><p>Because <code>all-MiniLM-L6-v2</code> was trained with a <strong>contrastive objective</strong>: given a sentence, its paraphrase should be close in vector space, and random sentences should be far. The model was trained on 1 billion sentence pairs from NLI, QA, and paraphrase datasets.</p><p>Through this training, the model learns to encode <em>semantic role</em> rather than surface form:</p>
@@ -544,6 +565,23 @@
   <div class="qa-card">
     <div class="qa-q" onclick="toggle(this)"><span class="q-icon">Q</span><span class="q-text">Did you do reranking?</span><span class="arrow">▶</span></div>
     <div class="qa-a"><p>No. We retrieve top-k by cosine similarity and pass them directly to the LLM in score order. A <strong>cross-encoder reranker</strong> (e.g. <code>cross-encoder/ms-marco-MiniLM-L-6-v2</code>) would re-score each (query, chunk) pair jointly and could improve precision, especially for complex queries. It wasn't implemented due to the added latency (~100–300ms extra per query) and complexity.</p></div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q" onclick="toggle(this)"><span class="q-icon">Q</span><span class="q-text">Did you implement hybrid retrieval? How does it work?</span><span class="arrow">▶</span></div>
+    <div class="qa-a">
+      <p><strong>Yes.</strong> <code>retrieve_hybrid()</code> in <code>retrieval.py</code> merges both indexes, and it is now fully wired into the main <code>answer()</code> function via <code>strategy="hybrid"</code>.</p>
+      <p>How it works:</p>
+      <ol>
+        <li>Calls <code>retrieve(query, k=k, strategy="fixed")</code> → top-k from the fixed-size index</li>
+        <li>Calls <code>retrieve(query, k=k, strategy="paragraph")</code> → top-k from the paragraph index</li>
+        <li>Merges both result lists; deduplicates by <code>(source, page)</code> — if both indexes return a chunk from the same page, only the higher-scoring chunk is kept</li>
+        <li>Returns the overall top-k by score</li>
+      </ol>
+      <p><strong>Why this helps:</strong> fixed chunking retrieves precisely (small windows, tight semantic focus); paragraph chunking retrieves more complete clinical thoughts. When one misses, the other often catches it. The ablation showed paragraph strategy had +6% Precision — hybrid gets the best of both.</p>
+      <div class="tip">Use <code>answer(question, strategy="hybrid")</code> for best coverage, especially for multi-part questions where the answer may span a paragraph boundary.</div>
+      <div class="warn">Cost: 2× embedding lookups at query time (~10–30ms extra), but latency is dominated by the LLM call (~3s) so this is negligible.</div>
+    </div>
   </div>
 
   <div class="qa-card deep">

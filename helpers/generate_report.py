@@ -189,7 +189,7 @@ def build_content(S):
         ["Document Loading", "PDF text extraction + cleaning", "PyMuPDF (fitz)"],
         ["Chunking", "Fixed-size + paragraph-aware", "utils.py (custom)"],
         ["Embedding", "Bi-encoder dense embeddings", "sentence-transformers / all-MiniLM-L6-v2"],
-        ["Indexing", "Numpy .npy + JSON metadata files", "numpy (cosine via dot product on L2-normalised vectors)"],
+        ["Indexing", "Numpy .npy + JSON metadata + index_metadata.json", "numpy (cosine via dot product on L2-normalised vectors)"],
         ["Retrieval", "Top-k cosine similarity search", "retrieval.py"],
         ["Generation", "Grounded answer with inline citations", "Anthropic Claude (haiku-4-5)"],
         ["Evaluation", "Hit@k, Precision@k, manual quality", "run_eval.py"],
@@ -256,7 +256,7 @@ def build_content(S):
 
     story += [H2("4.2 Numpy Index (replacing ChromaDB)", S)]
     for item in [
-        "<b>Storage format:</b> <code>index/fixed_embeddings.npy</code> (float32, shape N×384, 14.8 MB) + <code>index/fixed_chunks.json</code> (chunk metadata list)",
+        "<b>Storage format:</b> <code>index/fixed_embeddings.npy</code> (float32, shape N×384, 14.8 MB) + <code>index/fixed_chunks.json</code> (chunk metadata list) + <code>index/index_metadata.json</code> (build parameters, chunk counts, timestamp — written automatically by <code>save_index_metadata()</code>)",
         "No external vector database — pure numpy matrix multiplication: <code>scores = embeddings @ qvec.T</code> — exact cosine similarity in a single operation",
         "Two index pairs: fixed strategy (10,107 chunks) and paragraph strategy (5,250 chunks)",
         "Fully reproducible: <code>build_index.py</code> overwrites .npy/.json on every run; no collection state to manage",
@@ -283,10 +283,12 @@ def build_content(S):
       "context limit and leaving room for the system prompt and answer. Ablation (Runs 6/7) shows "
       "k=5 is the precision-recall sweet spot for this 50-question gold set.", S), SP(0.1)]
 
-    story += [H3("Hybrid retrieval:", S),
-    B("<code>retrieve_hybrid()</code> queries both fixed and paragraph collections, deduplicates by "
+    story += [H3("Hybrid retrieval (implemented):", S),
+    B("<code>retrieve_hybrid()</code> queries both fixed and paragraph indexes, deduplicates by "
       "(source, page) keeping the higher-scoring chunk, and returns the top-k merged results. "
-      "This is not the default but is available for ablation.", S), SP(0.1)]
+      "Now fully wired into the main <code>answer()</code> API via <code>strategy='hybrid'</code> — "
+      "callers can pass <code>answer(question, strategy='hybrid')</code> to get the best of both "
+      "chunking strategies in a single call.", S), SP(0.1)]
 
     story += [H3("Retrieval metrics:", S)]
     ret_data = [
@@ -409,6 +411,8 @@ def build_content(S):
     story += [H1("10. What We Would Improve Next", S), SP(0.1)]
 
     improvements = [
+        ("<b>✅ Hybrid retrieval in answer() [DONE]</b>", "strategy='hybrid' is now fully implemented in answer(). Calling answer(question, strategy='hybrid') invokes retrieve_hybrid() which merges both fixed and paragraph indexes, deduplicates by (source, page), and returns the best-scoring chunk per page. This was previously available only by calling retrieve_hybrid() directly."),
+        ("<b>✅ Index metadata file [DONE]</b>", "build_index.py now writes index/index_metadata.json after every build, recording embedding_model, embedding_dim, chunk_size, overlap, strategies_built, num_chunks per strategy, total_chunks, and UTC timestamp. The index is now fully self-documenting."),
         ("<b>Cross-encoder reranker</b>", "After top-k retrieval with the bi-encoder, apply a cross-encoder (e.g., ms-marco-MiniLM-L-6-v2) to rerank. Cross-encoders jointly attend to query + chunk and are significantly more accurate, at the cost of per-pair inference."),
         ("<b>Metadata-filtered retrieval</b>", "For numerical questions, filter to chunks containing digits. For temporal questions, filter to chunks with year/day/month patterns. This reduces noise without increasing k."),
         ("<b>Sentence-level overlap</b>", "Replace character-overlap with sentence-boundary overlap — guarantee each chunk starts and ends at a full sentence."),
@@ -642,9 +646,12 @@ def build_content(S):
         "from a dense table. Retrieval is necessary but not sufficient for answer quality."
     )
     story += qa_block(
-        "Did you try reranking?",
-        "Not in the baseline. retrieve_hybrid() implements a simple merge-by-score across both "
-        "chunking strategies. A cross-encoder reranker is identified as the top future improvement."
+        "Did you implement hybrid retrieval?",
+        "Yes. retrieve_hybrid() merges results from both fixed and paragraph indexes, "
+        "deduplicates by (source, page) keeping the highest-scoring chunk per page, and returns "
+        "the overall top-k. It is now fully wired into the main answer() function: calling "
+        "answer(question, strategy='hybrid') routes to retrieve_hybrid() automatically. "
+        "A cross-encoder reranker remains the top future improvement for higher precision."
     )
     story += qa_block(
         "What is the difference between dense retrieval and BM25?",

@@ -16,7 +16,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from retrieval  import retrieve
+from retrieval  import retrieve, retrieve_hybrid
 from generation import generate_answer
 
 # ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@ from generation import generate_answer
 # ---------------------------------------------------------------------------
 
 DEFAULT_K        = 5       # number of chunks to retrieve
-DEFAULT_STRATEGY = "fixed" # chunking strategy: 'fixed' or 'paragraph'
+DEFAULT_STRATEGY = "fixed" # chunking strategy: 'fixed', 'paragraph', or 'hybrid'
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +66,11 @@ def answer(question: str,
     k        : int
         Number of chunks to retrieve (default: 5).
     strategy : str
-        Chunking strategy to query: 'fixed' or 'paragraph' (default: 'fixed').
+        Chunking strategy to query:
+        - 'fixed'     — fixed-size 400-char chunks (default)
+        - 'paragraph' — paragraph-boundary chunks
+        - 'hybrid'    — merge results from both fixed and paragraph indexes,
+                        deduplicate by (source, page), keep highest-scoring chunk per page
 
     Returns
     -------
@@ -81,12 +85,18 @@ def answer(question: str,
     >>> result = answer("What are the discharge criteria for febrile seizure?")
     >>> print(result["answer"])
     >>> print(result["sources"])
+
+    >>> # Use hybrid retrieval for best coverage:
+    >>> result = answer("What organisms cause bacterial gastroenteritis?", strategy="hybrid")
     """
     t0 = time.perf_counter()
 
     # 1. Retrieve relevant chunks (includes embedding the query)
     t_ret = time.perf_counter()
-    retrieved = retrieve(question, k=k, strategy=strategy)
+    if strategy == "hybrid":
+        retrieved = retrieve_hybrid(question, k=k)
+    else:
+        retrieved = retrieve(question, k=k, strategy=strategy)
     embed_retrieve_ms = round((time.perf_counter() - t_ret) * 1000)
 
     # 2. Generate grounded answer
