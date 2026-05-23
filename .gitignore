@@ -29,15 +29,8 @@ eval_run.log
 # Jupyter checkpoints
 .ipynb_checkpoints/
 
-# Generated reports & presentations (large PDFs)
-report.pdf
-report_he.pdf
-presentation_guide.pdf
-presentation_guide_en.pdf
-
-# But allow docs served via the web UI
-!static/docs/report.pdf
-!static/docs/mid_term_assignment.pdf
+# All docs now live in static/docs/ — allow everything there
+!static/docs/
 
 # OS / IDE
 .DS_Store
