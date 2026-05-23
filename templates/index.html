@@ -127,6 +127,11 @@
     .out-scope-label { display: flex; align-items: center; gap: 6px; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #b07800; margin-bottom: 8px; margin-top: 2px; }
     .out-scope-label .oos-badge { background: #ffd060; color: #7a4400; border-radius: 4px; padding: 1px 6px; font-size: .65rem; }
     .out-scope-hint { font-size: .72rem; color: #8a6820; background: #fffbf0; border: 1px solid #f0d080; border-radius: 7px; padding: 7px 10px; margin-bottom: 10px; line-height: 1.5; }
+    .sample-btn.confuse { background: #fdf0ff; border-color: #d090e0; color: #5a1a7a; }
+    .sample-btn.confuse:hover { background: #f5e0ff; border-color: #a040c0; color: #3a0060; }
+    .confuse-label { display: flex; align-items: center; gap: 6px; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #7a20a0; margin-bottom: 8px; margin-top: 2px; }
+    .confuse-label .con-badge { background: #d080e8; color: #3a0060; border-radius: 4px; padding: 1px 6px; font-size: .65rem; }
+    .confuse-hint { font-size: .72rem; color: #6a1a90; background: #fdf0ff; border: 1px solid #d090e0; border-radius: 7px; padding: 7px 10px; margin-bottom: 10px; line-height: 1.5; }
     .sidebar-section { margin-bottom: 24px; }
 
     .error-card { background: #fdf0f0; border: 1px solid #f5c6cb; border-radius: 10px; padding: 16px 20px; color: #721c24; font-size: .88rem; line-height: 1.7; }
@@ -172,6 +177,11 @@
     html.dark .out-scope-label { color: #c49020; }
     html.dark .out-scope-label .oos-badge { background: #6a4400; color: #f0c050; }
     html.dark .out-scope-hint { background: #1e1600; border-color: #5a3e00; color: #b07820; }
+    html.dark .sample-btn.confuse { background: #1a0a20; border-color: #6a2890; color: #c080e0; }
+    html.dark .sample-btn.confuse:hover { background: #220a2e; border-color: #a050d0; color: #e0a0ff; }
+    html.dark .confuse-label { color: #c080e0; }
+    html.dark .confuse-label .con-badge { background: #4a1060; color: #e0a0ff; }
+    html.dark .confuse-hint { background: #1a0a20; border-color: #6a2890; color: #a060c0; }
     html.dark .sidebar h3 { color: #5a7a9a; }
     html.dark .hf-pill { background: #0d2236; border-color: #1e3a52; }
     html.dark .hf-state-label { color: #6a8aaa; }
@@ -312,6 +322,16 @@
       <button class="sample-btn out-of-scope" onclick="fillAndAsk(this)">What are the side effects of metformin in adults?</button>
       <button class="sample-btn out-of-scope" onclick="fillAndAsk(this)">What is the capital of France?</button>
       <button class="sample-btn out-of-scope" onclick="fillAndAsk(this)">What are the symptoms of COVID-19 in adults?</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="confuse-label">🎭 Confusion questions <span class="con-badge">TRICK</span></div>
+      <div class="confuse-hint">Questions <strong>about the corpus</strong> but with a <strong>false premise</strong>. The system should correct the mistake rather than agree with it.</div>
+      <button class="sample-btn confuse" onclick="fillAndAsk(this)">Does a sunken fontanel indicate hydrocephalus?</button>
+      <button class="sample-btn confuse" onclick="fillAndAsk(this)">Is rhinorrhea lasting more than 10 days classified as acute?</button>
+      <button class="sample-btn confuse" onclick="fillAndAsk(this)">What are the discharge criteria for an adult with febrile seizure?</button>
+      <button class="sample-btn confuse" onclick="fillAndAsk(this)">Is testicular trauma the most urgent diagnosis in scrotal pain?</button>
+      <button class="sample-btn confuse" onclick="fillAndAsk(this)">Does secondhand smoke reduce the risk of asthma exacerbations?</button>
     </div>
   </aside>
 
