@@ -1,6 +1,9 @@
 # Pediatric RAG Pipeline – Python dependencies
 # Tested on Python 3.10+
 
+# Web server
+flask>=3.0.0
+
 # PDF extraction
 PyMuPDF>=1.23.0
 
@@ -18,6 +21,9 @@ python-dotenv>=1.0.0
 
 # Progress bars (used during index build)
 tqdm>=4.66.0
+
+# Report PDF generation (optional — only needed to regenerate report.pdf)
+# reportlab>=4.0.0
 
 # HuggingFace local model support (optional — only needed for non-Claude models)
 # huggingface_hub>=0.24.0
