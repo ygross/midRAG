@@ -186,6 +186,20 @@
     .faq-q-badge { background: #2e6da4; color: white; border-radius: 50%; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
     .faq-a { font-size: .84rem; color: #3a5a7a; line-height: 1.75; padding-left: 32px; }
 
+    /* Function reference */
+    .fn-file-block { margin-bottom: 28px; }
+    .fn-file-title { font-size: .82rem; font-weight: 700; color: white; background: #1a3a5c; border-radius: 8px 8px 0 0; padding: 8px 14px; display: flex; align-items: center; gap: 8px; }
+    .fn-file-badge { font-size: .65rem; background: rgba(255,255,255,.2); border-radius: 10px; padding: 2px 8px; }
+    .fn-list { border: 1px solid #d8e4f0; border-top: none; border-radius: 0 0 8px 8px; overflow: hidden; }
+    .fn-item { border-bottom: 1px solid #eef3f8; padding: 12px 16px; }
+    .fn-item:last-child { border-bottom: none; }
+    .fn-name { font-family: "Consolas","Courier New",monospace; font-size: .82rem; font-weight: 700; color: #1a6aad; margin-bottom: 4px; }
+    .fn-desc { font-size: .8rem; color: #3a5a7a; line-height: 1.65; margin-bottom: 6px; }
+    .fn-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+    .fn-tag { font-size: .7rem; border-radius: 4px; padding: 2px 7px; font-weight: 600; }
+    .fn-tag.in  { background: #e8f4e8; color: #2a6a2a; }
+    .fn-tag.out { background: #e8f0fc; color: #1a3a9c; }
+    .fn-tag.note{ background: #fff3e0; color: #8a4a00; }
     /* Download cards */
     .dl-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
     .dl-card { display: flex; align-items: center; gap: 14px; background: #f7fafd; border: 1px solid #d8e4f0; border-radius: 10px; padding: 14px 18px; text-decoration: none; color: inherit; transition: border-color .15s, box-shadow .15s; }
@@ -225,6 +239,7 @@
     html.dark .file-card-right h4{color:#c8d8e8;}html.dark .file-card-right p{color:#8aaac8;}
     html.dark .faq-item{border-color:#1e3a52;}html.dark .faq-q{color:#c8d8e8;}html.dark .faq-a{color:#8aaac8;}
     html.dark .dl-card{background:#0d2035;border-color:#1e3a52;color:#c8d8e8;}html.dark .dl-card:hover{border-color:#4a9ad4;}html.dark .dl-info strong{color:#c8d8e8;}html.dark .dl-info span{color:#6a8aa8;}html.dark .dl-badge{background:#1e5080;}
+    html.dark .fn-file-title{background:#0d2a44;}html.dark .fn-list{border-color:#1e3a52;}html.dark .fn-item{border-color:#1e3a52;background:#081828;}html.dark .fn-name{color:#5ab0f0;}html.dark .fn-desc{color:#8aaac8;}html.dark .fn-tag.in{background:#0d2a0d;color:#6abf6a;}html.dark .fn-tag.out{background:#0d1a3a;color:#6a9af0;}html.dark .fn-tag.note{background:#2a1a00;color:#d4a04a;}
     html.dark .arch-detail{background:#111e2d;border-color:#1e3a52;color:#8aaac8;}
     html.dark .arch-content h4{color:#c8d8e8;}html.dark .arch-content p{color:#6a8aaa;}
     html.dark ::-webkit-scrollbar-track{background:#0e1a28;}html.dark ::-webkit-scrollbar-thumb{background:#1e3a52;}
@@ -281,6 +296,7 @@
     <a class="toc-link" href="#codefiles">6. Python Files</a>
     <a class="toc-link toc-sub" href="#codefiles-map">File Map</a>
     <a class="toc-link toc-sub" href="#codefiles-each">Each File Explained</a>
+    <a class="toc-link toc-sub" href="#codefiles-funcs">Function Reference</a>
     <a class="toc-link toc-sub" href="#codefiles-cli">Manual CLI Runs</a>
     <hr class="toc-divider">
     <a class="toc-link" href="#quickref">Quick Reference</a>
@@ -810,6 +826,187 @@
 
         </div><!-- /file-grid -->
       </div>
+
+      <!-- Function Reference -->
+      <div id="codefiles-funcs" style="margin-top:28px;">
+        <h3 style="font-size:.92rem;font-weight:700;color:#1a3a5c;margin:0 0 14px;">Function Reference — Every Function Explained</h3>
+        <p style="font-size:.83rem;color:#4a6a8a;margin-bottom:18px;">Complete per-function breakdown: what each function does, its inputs, and what it returns.</p>
+
+        <!-- utils.py -->
+        <div class="fn-file-block">
+          <div class="fn-file-title">📄 utils.py <span class="fn-file-badge">HELPERS — PDF loading, cleaning, chunking, I/O</span></div>
+          <div class="fn-list">
+            <div class="fn-item">
+              <div class="fn-name">clean_text(text)</div>
+              <div class="fn-desc">Removes noise from raw PDF-extracted text: collapses excess newlines, trims whitespace, strips page-number lines (e.g. <code>• 30 •</code>) and lone bullet characters. Text quality directly affects embedding quality and retrieval accuracy.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: raw str from PyMuPDF</span><span class="fn-tag out">out: cleaned str</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">build_page_to_section_map(doc)</div>
+              <div class="fn-desc">Reads the PDF's built-in Table of Contents and builds a <code>{page_index: section_title}</code> dict with forward-fill — every page carries the most recent chapter heading. Used so each chunk knows which section it came from.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: fitz.Document</span><span class="fn-tag out">out: {int: str}</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">load_pdf(pdf_path, doc_id_prefix)</div>
+              <div class="fn-desc">Opens a PDF, iterates page-by-page, cleans each page's text, and returns a list of page-level document dicts. Pages with fewer than 50 characters (blank pages, image-only pages) are skipped. Each dict contains <code>doc_id</code>, <code>text</code>, and <code>metadata</code> (source, page, section, prefix).</div>
+              <div class="fn-meta"><span class="fn-tag in">in: path + prefix string</span><span class="fn-tag out">out: list[dict] — one per page</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">load_all_documents(data_dir)</div>
+              <div class="fn-desc">Scans <code>data/raw/</code> for all PDFs and loads them all via <code>load_pdf()</code>. Assigns prefix automatically: filenames containing <em>Kliegman</em> → <code>kliegman</code>, <em>Case-Based</em> → <code>aap</code>, anything else → <code>doc</code>.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: data_dir path</span><span class="fn-tag out">out: list[dict] — all pages combined</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">chunk_fixed_size(documents, chunk_size=400, overlap=50)</div>
+              <div class="fn-desc"><strong>Strategy 1.</strong> Splits each page's text into fixed-size character windows stepping by <code>chunk_size − overlap</code>. Overlap prevents context loss at chunk boundaries. Works best for the Kliegman decision-tree pages (dense, short). Each chunk gets a <code>_fixed_NNN</code> suffix in its ID.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: documents + size/overlap params</span><span class="fn-tag out">out: list[dict] chunks</span><span class="fn-tag note">overlap prevents mid-sentence cuts</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">chunk_paragraph(documents, min_len=100, max_len=700)</div>
+              <div class="fn-desc"><strong>Strategy 2.</strong> Splits on double-newlines (natural paragraph breaks), merges paragraphs that are too short, and splits paragraphs that exceed <code>max_len</code> at sentence boundaries. Preserves clinical reasoning units in the AAP case-based Q&amp;A text. Each chunk gets a <code>_para_NNN</code> suffix.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: documents + min/max params</span><span class="fn-tag out">out: list[dict] chunks</span><span class="fn-tag note">better for AAP narrative pages</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">save_jsonl / load_jsonl</div>
+              <div class="fn-desc">Write / read a list of dicts as JSON Lines (one JSON object per line). Used to persist intermediate chunks to <code>data/processed/</code> so the index can be verified and chunks can be inspected without re-running the PDF pipeline.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: list[dict] + file path</span><span class="fn-tag out">out: list[dict] (load) / file written (save)</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- build_index.py -->
+        <div class="fn-file-block">
+          <div class="fn-file-title">🔨 build_index.py <span class="fn-file-badge">STEP 1 — PDF → Embeddings → Index on disk</span></div>
+          <div class="fn-list">
+            <div class="fn-item">
+              <div class="fn-name">embed_chunks(model, chunks, batch_size=128)</div>
+              <div class="fn-desc">Takes all chunk texts, encodes them in batches with the SentenceTransformer model, and returns a float32 numpy array of shape <code>(N, 384)</code>. <code>normalize_embeddings=True</code> ensures cosine similarity equals the dot product, enabling fast matrix-multiply search.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: model + chunk list + batch size</span><span class="fn-tag out">out: np.ndarray (N, 384) float32</span><span class="fn-tag note">~5–10 min on CPU for full corpus</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">save_index(chunks, embeddings, name)</div>
+              <div class="fn-desc">Saves two parallel files to <code>index/</code>: <code>{name}_embeddings.npy</code> (the float32 vectors) and <code>{name}_chunks.json</code> (the chunk metadata). Row N in the .npy file always corresponds to entry N in the .json — they must stay in sync.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: chunks list + embeddings array + strategy name</span><span class="fn-tag out">out: 2 files written to index/</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">verify_index(name, model)</div>
+              <div class="fn-desc">Sanity-checks a saved index by loading both files, embedding a dummy query, and confirming a result is returned. Catches file corruption, shape mismatches, or missing files before the server starts.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: strategy name + model</span><span class="fn-tag out">out: prints top chunk ID or raises error</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">build_index(strategy, chunk_size, overlap)</div>
+              <div class="fn-desc">The main build pipeline: load PDFs → chunk → save JSONL → load embedding model → embed → save index → verify. Fully reproducible — deleting <code>index/</code> and re-running produces the same output. Run once before starting the web server.</div>
+              <div class="fn-meta"><span class="fn-tag in">strategy: fixed|paragraph|both · chunk_size · overlap</span><span class="fn-tag out">out: index/ files + data/processed/ files</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- retrieval.py -->
+        <div class="fn-file-block">
+          <div class="fn-file-title">🔍 retrieval.py <span class="fn-file-badge">STEP 2 — Query → Cosine Search → Top-K Chunks</span></div>
+          <div class="fn-list">
+            <div class="fn-item">
+              <div class="fn-name">_get_model()</div>
+              <div class="fn-desc">Returns the shared SentenceTransformer singleton, loading it on the first call. The model stays in memory for the lifetime of the process — subsequent calls return instantly without re-loading weights.</div>
+              <div class="fn-meta"><span class="fn-tag out">out: SentenceTransformer (384-dim)</span><span class="fn-tag note">singleton — loaded once per process</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">_load_strategy(strategy)</div>
+              <div class="fn-desc">Loads and caches the numpy index for a given strategy from disk. On first call reads <code>{strategy}_embeddings.npy</code> and <code>{strategy}_chunks.json</code>. Subsequent calls return the cached dict immediately. Raises <code>FileNotFoundError</code> if the index hasn't been built yet.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: 'fixed' or 'paragraph'</span><span class="fn-tag out">out: {embeddings: ndarray, chunks: list}</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">retrieve(query, k=5, strategy='fixed')</div>
+              <div class="fn-desc">The main retrieval function. Embeds the query, computes <code>embeddings @ qvec.T</code> (cosine similarity via dot product on L2-normalised vectors), selects the top-k indices with <code>argpartition</code>, and returns them sorted by score. Each result contains <code>chunk_id</code>, <code>text</code>, <code>score</code>, and <code>metadata</code>.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: query str + k + strategy</span><span class="fn-tag out">out: list[dict] — top-k chunks with scores</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">retrieve_hybrid(query, k=5)</div>
+              <div class="fn-desc">Runs <code>retrieve()</code> on both strategies independently, merges results, deduplicates by <code>(source, page)</code> keeping the higher score, and returns the overall top-k. Useful when fixed strategy misses something paragraph catches, or vice versa.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: query str + k</span><span class="fn-tag out">out: merged top-k list[dict]</span><span class="fn-tag note">2× embedding cost</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- generation.py -->
+        <div class="fn-file-block">
+          <div class="fn-file-title">🤖 generation.py <span class="fn-file-badge">STEP 3 — Chunks + Question → Grounded LLM Answer</span></div>
+          <div class="fn-list">
+            <div class="fn-item">
+              <div class="fn-name">_format_context(retrieved_chunks)</div>
+              <div class="fn-desc">Converts the list of retrieved chunk dicts into a structured text block for the LLM prompt. Each chunk is rendered as a labelled section with its ID, source file, and page number, separated by <code>---</code> dividers so the model can distinguish sources.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: list[dict] chunks</span><span class="fn-tag out">out: formatted context str for prompt</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">generate_answer(question, chunks, model, max_tokens)</div>
+              <div class="fn-desc">Router function. If <code>model</code> starts with <code>"claude-"</code> → calls <code>_generate_anthropic()</code>. Any other model ID → calls <code>_generate_hf()</code> for local HuggingFace inference. This single entry point makes it trivial to swap backends.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: question + chunks + model ID</span><span class="fn-tag out">out: answer str with [Source: ...] citation</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">_generate_anthropic(question, chunks, model, max_tokens)</div>
+              <div class="fn-desc">Sends question + context to the Anthropic Claude API. Builds a system prompt enforcing grounding rules (answer only from context, say "not found" if missing, cite sources). Retries up to 8 times with exponential backoff (1s → 2s → 4s… up to 60s) on HTTP 529 overload errors.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: question + chunks + model ID</span><span class="fn-tag out">out: answer str</span><span class="fn-tag note">requires ANTHROPIC_API_KEY in .env</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">prefetch_hf_model(model_id)</div>
+              <div class="fn-desc">Downloads a HuggingFace model in the background using <code>snapshot_download()</code> to the local <code>model_cache/</code> folder (avoids Windows symlink errors). Updates <code>_hf_load_status[model_id]</code> throughout so the UI progress bar stays live.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: HuggingFace model ID string</span><span class="fn-tag note">runs in background thread — non-blocking</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">_generate_hf(question, chunks, model_id, max_tokens)</div>
+              <div class="fn-desc">Runs inference with a locally cached HuggingFace model. For seq2seq models (Flan-T5) uses <code>model.generate()</code> + decode. For causal/instruction models (Zephyr, Mistral) tries chat-template format first, falls back to plain string prompt.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: question + chunks + model_id</span><span class="fn-tag out">out: answer str</span><span class="fn-tag note">no API key needed — runs locally</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- rag_system.py -->
+        <div class="fn-file-block">
+          <div class="fn-file-title">⚙️ rag_system.py <span class="fn-file-badge">ORCHESTRATOR — Public answer() API</span></div>
+          <div class="fn-list">
+            <div class="fn-item">
+              <div class="fn-name">_extract_cited_sources(answer_text, retrieved_chunks)</div>
+              <div class="fn-desc">Parses the model's answer for the <code>[Source: chunk_id_1, chunk_id_2]</code> citation block using a regex, validates the IDs against the actually-retrieved chunks, and returns a clean list. Falls back to all retrieved IDs if no citation is found.</div>
+              <div class="fn-meta"><span class="fn-tag in">in: answer str + retrieved chunks</span><span class="fn-tag out">out: list[str] of chunk IDs</span></div>
+            </div>
+            <div class="fn-item">
+              <div class="fn-name">answer(question, k=5, strategy='fixed', model='claude-haiku-4-5-20251001')</div>
+              <div class="fn-desc">The complete RAG pipeline in one call. Runs: <strong>(1)</strong> retrieve top-k chunks → <strong>(2)</strong> generate grounded answer → <strong>(3)</strong> extract cited sources. Also times each step in milliseconds. Returns a structured dict with <code>answer</code>, <code>sources</code>, <code>retrieved_chunks</code>, and <code>_timings</code>.</div>
+              <div class="fn-meta">
+                <span class="fn-tag in">in: question str</span>
+                <span class="fn-tag out">out: {answer, sources, retrieved_chunks, _timings}</span>
+                <span class="fn-tag note">this is the Required System Interface from the assignment</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flow diagram -->
+        <div style="background:#f0f6ff;border:1px solid #c8ddf0;border-radius:10px;padding:18px 20px;margin-top:8px;">
+          <div style="font-size:.8rem;font-weight:700;color:#1a3a5c;margin-bottom:10px;">📊 Full Data Flow</div>
+          <pre style="font-size:.75rem;color:#2a4a6a;line-height:1.9;margin:0;overflow-x:auto;">data/raw/*.pdf
+  ↓  utils.load_all_documents()  →  load_pdf()  →  clean_text()
+Documents  [{doc_id, text, metadata}]
+  ↓  utils.chunk_fixed_size()  /  utils.chunk_paragraph()
+Chunks  [{chunk_id, doc_id, text, metadata}]
+  ↓  build_index.embed_chunks()   [all-MiniLM-L6-v2, 384-dim, L2-norm]
+Embeddings  np.ndarray (N × 384)
+  ↓  build_index.save_index()
+index/*.npy  +  index/*.json
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ at query time ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Question (str)
+  ↓  retrieval._get_model().encode()
+Query vector (384-dim)
+  ↓  retrieval.retrieve()  →  embeddings @ qvec.T  →  top-k
+Chunks  [{chunk_id, text, score, metadata}]
+  ↓  generation._format_context()  +  SYSTEM_PROMPT
+Prompt (system + user with context block)
+  ↓  generation._generate_anthropic()  /  _generate_hf()
+Answer text  +  [Source: chunk_id_1, ...]
+  ↓  rag_system._extract_cited_sources()
+{answer, sources, retrieved_chunks, _timings}</pre>
+        </div>
+      </div><!-- /codefiles-funcs -->
 
       <!-- Manual CLI runs -->
       <div id="codefiles-cli">
