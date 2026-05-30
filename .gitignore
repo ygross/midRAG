@@ -53,6 +53,9 @@ data/processed/
 helpers/*.pdf
 static/docs/*.pdf
 
+# Exception: final report required for submission
+!report.pdf
+
 # Jupyter notebooks
 *.ipynb
 .ipynb_checkpoints/
