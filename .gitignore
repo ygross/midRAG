@@ -56,3 +56,4 @@ static/docs/*.pdf
 # Jupyter notebooks
 *.ipynb
 .ipynb_checkpoints/
+helpers/
