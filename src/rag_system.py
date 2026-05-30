@@ -124,17 +124,62 @@ def answer(question: str,
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    import json, sys
+    import argparse, json
 
-    questions = [
-        "What are the discharge criteria for a child with febrile seizure?",
-        "What is the initial evaluation for a newborn with respiratory distress?",
-        "Which bacteria most commonly cause scrotal pain requiring urgent surgery?",
+    CLAUDE_MODELS = [
+        "claude-haiku-4-5-20251001",
+        "claude-sonnet-4-6",
+        "claude-opus-4-7",
     ]
+
+    parser = argparse.ArgumentParser(
+        description="Run the full RAG pipeline (retrieval + generation).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("query", nargs="*",
+                        help="Natural-language question (space-separated words). "
+                             "Omit to run the built-in demo questions.")
+    parser.add_argument("-k", type=int, default=DEFAULT_K,
+                        help="Number of chunks to retrieve")
+    parser.add_argument("--strategy", choices=["fixed", "paragraph", "hybrid"],
+                        default=DEFAULT_STRATEGY,
+                        help="Chunking strategy")
+    parser.add_argument("--model", default="claude-haiku-4-5-20251001",
+                        choices=CLAUDE_MODELS,
+                        help="Claude model for answer generation")
+    parser.add_argument("--show-chunks", action="store_true",
+                        help="Print retrieved chunks and scores before the answer")
+    parser.add_argument("--json", dest="as_json", action="store_true",
+                        help="Dump full result as JSON")
+    args = parser.parse_args()
+
+    if args.query:
+        questions = [" ".join(args.query)]
+    else:
+        questions = [
+            "What are the discharge criteria for a child with febrile seizure?",
+            "What is the initial evaluation for a newborn with respiratory distress?",
+            "Which bacteria most commonly cause scrotal pain requiring urgent surgery?",
+        ]
 
     for q in questions:
         print(f"\nQ: {q}")
-        result = answer(q)
-        print(f"A: {result['answer'][:300]}")
-        print(f"Sources: {result['sources']}")
+        print(f"   strategy={args.strategy}  k={args.k}  model={args.model}\n")
+        result = answer(q, k=args.k, strategy=args.strategy, model=args.model)
+
+        if args.as_json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            continue
+
+        if args.show_chunks:
+            print("── Retrieved chunks ──")
+            for chunk in result["retrieved_chunks"]:
+                print(f"  [{chunk['score']:.3f}] {chunk['chunk_id']}")
+                print(f"  {chunk['text'][:200]}\n")
+
+        print(f"A: {result['answer']}")
+        print(f"Sources : {result['sources']}")
+        print(f"Timings : retrieve={result['_timings']['embed_retrieve_ms']}ms  "
+              f"generate={result['_timings']['generate_ms']}ms  "
+              f"total={result['_timings']['total_ms']}ms")
         print("-" * 60)

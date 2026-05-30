@@ -189,9 +189,34 @@ def retrieve_hybrid(query: str, k: int = 5) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    query = " ".join(sys.argv[1:]) or "What causes fever and petechiae in children?"
-    print(f"Query: {query}\n")
-    for r in retrieve(query, k=3, strategy="fixed"):
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Run retrieval against the built index.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("query", nargs="*",
+                        help="Natural-language question (space-separated words)")
+    parser.add_argument("-k", type=int, default=3,
+                        help="Number of chunks to return")
+    parser.add_argument("--strategy", choices=["fixed", "paragraph", "hybrid"],
+                        default="fixed",
+                        help="Chunking strategy to query")
+    parser.add_argument("--text-limit", type=int, default=200,
+                        metavar="N",
+                        help="Max characters of chunk text to print")
+    args = parser.parse_args()
+
+    query = " ".join(args.query) or "What causes fever and petechiae in children?"
+    print(f"Query    : {query}")
+    print(f"Strategy : {args.strategy}  |  k={args.k}\n")
+
+    if args.strategy == "hybrid":
+        results = retrieve_hybrid(query, k=args.k)
+    else:
+        results = retrieve(query, k=args.k, strategy=args.strategy)
+
+    for r in results:
         print(f"[{r['score']:.3f}] {r['chunk_id']}")
-        print(r["text"][:200])
+        print(r["text"][:args.text_limit])
         print()

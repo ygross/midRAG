@@ -123,7 +123,8 @@ def evaluate(gold: list[dict],
              k: int = 5,
              strategy: str = "fixed",
              limit: int | None = None,
-             verbose: bool = True) -> dict:
+             verbose: bool = True,
+             model: str = "claude-haiku-4-5-20251001") -> dict:
     """
     Run the RAG pipeline on the gold question set and compute retrieval metrics.
 
@@ -179,7 +180,7 @@ def evaluate(gold: list[dict],
         ref_answer  = item.get("reference_answer", "")
 
         t0 = time.time()
-        result = answer(question, k=k, strategy=strategy)
+        result = answer(question, k=k, strategy=strategy, model=model)
         latency = time.time() - t0
         latencies.append(latency)
 
@@ -236,26 +237,44 @@ def evaluate(gold: list[dict],
 # Ablation study
 # ---------------------------------------------------------------------------
 
-def run_ablation(gold: list[dict], limit: int = 20):
+def run_ablation(gold: list[dict], limit: int = 20, name: str = "",
+                 strategies: list[str] | None = None,
+                 model: str = "claude-haiku-4-5-20251001"):
     """
-    Run 4 ablation experiments and print a summary table.
-    Uses a subset of the gold set for speed.
+    Run ablation experiments and print a summary table.
+
+    Parameters
+    ----------
+    gold       : gold evaluation set
+    limit      : number of questions to use (default: 20)
+    name       : optional label printed in the header
+    strategies : list of strategies to include, e.g. ['fixed'] or ['fixed','paragraph']
+                 defaults to both ['fixed', 'paragraph']
+    model      : Claude model used for answer generation across all experiments
     """
+    if strategies is None:
+        strategies = ["fixed", "paragraph"]
+
     print(f"\n{'='*65}")
-    print(f"Ablation Study  (using first {limit} questions)")
+    title = f"Ablation Study: {name}" if name else "Ablation Study"
+    print(f"{title}  (using first {limit} questions)")
+    print(f"Model: {model}  |  Strategies: {', '.join(strategies)}")
     print(f"{'='*65}")
 
-    experiments = [
-        {"strategy": "fixed",     "k": 5,  "label": "fixed chunks, top-5"},
-        {"strategy": "paragraph", "k": 5,  "label": "paragraph chunks, top-5"},
-        {"strategy": "fixed",     "k": 3,  "label": "fixed chunks, top-3"},
-        {"strategy": "fixed",     "k": 8,  "label": "fixed chunks, top-8"},
-    ]
+    # Build experiment grid: all requested strategies × k=[3,5,8]
+    experiments = []
+    for strat in strategies:
+        for k in [3, 5, 8]:
+            experiments.append({
+                "strategy": strat,
+                "k":        k,
+                "label":    f"{strat} chunks, top-{k}",
+            })
 
     rows = []
     for exp in experiments:
         result = evaluate(gold, k=exp["k"], strategy=exp["strategy"],
-                          limit=limit, verbose=False)
+                          limit=limit, verbose=False, model=model)
         rows.append((
             exp["label"],
             f"{result['hit_at_k']:.3f}",
@@ -274,23 +293,39 @@ def run_ablation(gold: list[dict], limit: int = 20):
 # Main
 # ---------------------------------------------------------------------------
 
+CLAUDE_MODELS = [
+    "claude-haiku-4-5-20251001",
+    "claude-sonnet-4-6",
+    "claude-opus-4-7",
+]
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate the Pediatric RAG pipeline.")
     parser.add_argument("--strategy", default="fixed",
                         choices=["fixed", "paragraph"],
-                        help="Chunking strategy to evaluate (default: fixed)")
+                        help="Chunking strategy for standard eval (default: fixed)")
+    parser.add_argument("--strategies", nargs="+",
+                        choices=["fixed", "paragraph"],
+                        help="Strategies to include in ablation (default: fixed paragraph)")
     parser.add_argument("--k",       type=int, default=5,
                         help="Number of chunks to retrieve (default: 5)")
+    parser.add_argument("--model",   default="claude-haiku-4-5-20251001",
+                        choices=CLAUDE_MODELS,
+                        help="Claude model for answer generation (default: claude-haiku-4-5-20251001)")
     parser.add_argument("--limit",   type=int, default=None,
                         help="Limit evaluation to first N questions (default: all)")
     parser.add_argument("--ablation", action="store_true",
                         help="Run ablation study instead of standard eval")
+    parser.add_argument("--name", type=str, default="",
+                        help="Optional name/label for this run (e.g. 'my-run-v1')")
     args = parser.parse_args()
 
     gold = load_gold_set()
     print(f"Loaded {len(gold)} gold questions from {GOLD_PATH}")
 
     if args.ablation:
-        run_ablation(gold, limit=args.limit or 20)
+        run_ablation(gold, limit=args.limit or 20, name=args.name,
+                     strategies=args.strategies, model=args.model)
     else:
-        evaluate(gold, k=args.k, strategy=args.strategy, limit=args.limit)
+        evaluate(gold, k=args.k, strategy=args.strategy,
+                 limit=args.limit, model=args.model)

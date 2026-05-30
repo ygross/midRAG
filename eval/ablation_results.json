@@ -1,19 +1,41 @@
 [
   {
-    "label": "fixed k=5",
+    "label": "fixed k=5 baseline",
     "strategy": "fixed",
     "k": 5,
-    "limit": 20,
-    "hit_at_k": 0.0,
-    "precision": 0.0,
-    "latency": 0.0,
-    "total_time": 0.3,
-    "notes": "",
+    "limit": 52,
+    "hit_at_k": 0.827,
+    "precision": 0.881,
+    "latency": 8.23,
+    "total_time": 427.9,
+    "notes": "fixed+ paragraph 400, 50",
     "categories": {
-      "factual": 0.0,
-      "numerical": 0.0
+      "factual": 0.792,
+      "numerical": 0.8,
+      "temporal": 0.8,
+      "negation": 1.0,
+      "comparison": 0.8
     },
-    "timestamp": "2026-05-19 10:11"
+    "timestamp": "2026-05-23 11:33"
+  },
+  {
+    "label": "paragraph k=8",
+    "strategy": "paragraph",
+    "k": 8,
+    "limit": 52,
+    "hit_at_k": 0.865,
+    "precision": 0.865,
+    "latency": 3.33,
+    "total_time": 173.0,
+    "notes": "yossi",
+    "categories": {
+      "factual": 0.875,
+      "numerical": 0.7,
+      "temporal": 1.0,
+      "negation": 1.0,
+      "comparison": 0.8
+    },
+    "timestamp": "2026-05-23 18:37"
   },
   {
     "label": "paragraph k=5",
@@ -22,118 +44,29 @@
     "limit": 20,
     "hit_at_k": 0.9,
     "precision": 0.87,
-    "latency": 5.93,
-    "total_time": 118.6,
+    "latency": 3.11,
+    "total_time": 62.3,
     "notes": "",
     "categories": {
       "factual": 0.875,
       "numerical": 1.0
     },
-    "timestamp": "2026-05-19 10:25"
+    "timestamp": "2026-05-28 17:15"
   },
   {
-    "label": "fixed k=7",
+    "label": "fixed k=3",
     "strategy": "fixed",
-    "k": 7,
-    "limit": 52,
-    "hit_at_k": 0.577,
-    "precision": 0.626,
-    "latency": 4.3,
-    "total_time": 384.0,
-    "notes": "",
-    "categories": {
-      "factual": 0.625,
-      "numerical": 0.4,
-      "temporal": 0.4,
-      "negation": 0.625,
-      "comparison": 0.8
-    },
-    "timestamp": "2026-05-19 10:28"
-  },
-  {
-    "label": "fixed k=5",
-    "strategy": "fixed",
-    "k": 5,
-    "limit": 52,
-    "hit_at_k": 0.827,
-    "precision": 0.881,
-    "latency": 4.89,
-    "total_time": 254.3,
-    "notes": "",
-    "categories": {
-      "factual": 0.792,
-      "numerical": 0.8,
-      "temporal": 0.8,
-      "negation": 1.0,
-      "comparison": 0.8
-    },
-    "timestamp": "2026-05-19 10:59"
-  },
-  {
-    "label": "fixed k=8",
-    "strategy": "fixed",
-    "k": 8,
+    "k": 3,
     "limit": 20,
-    "hit_at_k": 0.9,
-    "precision": 0.787,
-    "latency": 3.27,
-    "total_time": 65.4,
+    "hit_at_k": 0.85,
+    "precision": 0.85,
+    "latency": 2.56,
+    "total_time": 51.2,
     "notes": "",
     "categories": {
       "factual": 0.875,
-      "numerical": 1.0
+      "numerical": 0.75
     },
-    "timestamp": "2026-05-19 15:14"
-  },
-  {
-    "label": "fixed k=5",
-    "strategy": "fixed",
-    "k": 5,
-    "limit": 20,
-    "hit_at_k": 0.9,
-    "precision": 0.81,
-    "latency": 2.95,
-    "total_time": 58.9,
-    "notes": "",
-    "categories": {
-      "factual": 0.875,
-      "numerical": 1.0
-    },
-    "timestamp": "2026-05-20 14:17"
-  },
-  {
-    "label": "fixed k=5",
-    "strategy": "fixed",
-    "k": 5,
-    "limit": 20,
-    "hit_at_k": 0.9,
-    "precision": 0.81,
-    "latency": 2.59,
-    "total_time": 51.9,
-    "notes": "",
-    "categories": {
-      "factual": 0.875,
-      "numerical": 1.0
-    },
-    "timestamp": "2026-05-20 14:57"
-  },
-  {
-    "label": "fixed k=8",
-    "strategy": "fixed",
-    "k": 8,
-    "limit": 52,
-    "hit_at_k": 0.885,
-    "precision": 0.853,
-    "latency": 4.94,
-    "total_time": 257.0,
-    "notes": "",
-    "categories": {
-      "factual": 0.875,
-      "numerical": 0.8,
-      "temporal": 1.0,
-      "negation": 1.0,
-      "comparison": 0.8
-    },
-    "timestamp": "2026-05-22 19:12"
+    "timestamp": "2026-05-28 17:38"
   }
 ]
