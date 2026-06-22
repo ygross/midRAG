@@ -60,3 +60,6 @@ static/docs/*.pdf
 *.ipynb
 .ipynb_checkpoints/
 helpers/
+
+# Persisted session state (runtime data, not source)
+sessions/

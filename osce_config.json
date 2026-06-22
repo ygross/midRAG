@@ -1,0 +1,7 @@
+{
+  "engine": "runai",
+  "runai_url": "http://yossi1.runai-saar.knative.bgu.ac.il/",
+  "runai_model": "google/gemma-4-E2B-it",
+  "openai_key": "",
+  "openai_model": "gpt-4o-mini"
+}

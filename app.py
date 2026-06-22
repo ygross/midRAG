@@ -25,6 +25,13 @@ load_dotenv(Path(__file__).parent / ".env", override=True)
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 from src.rag_system import answer as rag_answer
 import generation as _generation   # same module object loaded by rag_system
+from src.tutor_agent import (
+    new_session  as tutor_new_session,
+    chat_stream  as tutor_chat_stream,
+    get_session_stats as tutor_stats,
+    list_sessions as tutor_list_sessions,
+    load_session  as tutor_load_session,
+)
 
 app = Flask(__name__)
 
@@ -69,6 +76,146 @@ def help_page(): return render_template("help.html")
 
 @app.route("/qa")
 def qa_page(): return render_template("qa.html")
+
+@app.route("/tutor")
+def tutor_page(): return render_template("tutor.html")
+
+@app.route("/agent-explained")
+def agent_explained(): return render_template("agent_explained.html")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Tutor Agent  /tutor/*
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/tutor/new", methods=["POST"])
+def tutor_new():
+    sid = tutor_new_session()
+    return jsonify({"session_id": sid})
+
+
+@app.route("/tutor/chat", methods=["POST"])
+def tutor_chat():
+    data       = request.get_json(force=True)
+    session_id = (data.get("session_id") or "").strip()
+    message    = (data.get("message")    or "").strip()
+    if not message:
+        return jsonify({"error": "No message"}), 400
+
+    def _generate():
+        for event in tutor_chat_stream(session_id, message):
+            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+        yield "data: __DONE__\n\n"
+
+    return Response(
+        stream_with_context(_generate()),
+        mimetype="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.route("/tutor/stats/<session_id>")
+def tutor_session_stats(session_id):
+    return jsonify(tutor_stats(session_id))
+
+
+@app.route("/tutor/sessions")
+def tutor_sessions_list():
+    return jsonify(tutor_list_sessions())
+
+
+@app.route("/tutor/load/<session_id>", methods=["POST"])
+def tutor_load(session_id):
+    found = tutor_load_session(session_id)
+    if not found:
+        return jsonify({"error": "Session not found"}), 404
+    return jsonify(tutor_stats(session_id))
+
+
+@app.route("/tutor/log/<session_id>")
+def tutor_log(session_id):
+    from src.tutor_agent import _sessions
+    tutor_load_session(session_id)
+    s = _sessions.get(session_id, {})
+    return jsonify(s.get("call_log", []))
+
+
+@app.route("/tutor/history/<session_id>")
+def tutor_history(session_id):
+    from src.tutor_agent import _sessions
+    tutor_load_session(session_id)
+    s = _sessions.get(session_id, {})
+    messages = []
+    activity  = []   # tool call events for the feed
+
+    for m in s.get("history", []):
+        role    = m.get("role", "")
+        content = m.get("content", "")
+
+        if isinstance(content, str):
+            if role in ("user", "assistant") and content.strip():
+                messages.append({"role": role, "text": content.strip()})
+            continue
+
+        if not isinstance(content, list):
+            continue
+
+        text_parts = []
+        for block in content:
+            btype = block.get("type", "")
+            if btype == "text" and block.get("text", "").strip():
+                text_parts.append(block["text"].strip())
+            elif btype == "tool_use":
+                activity.append({
+                    "event": "tool_call",
+                    "tool":  block.get("name", ""),
+                    "input": block.get("input", {}),
+                })
+            elif btype == "tool_result":
+                raw = block.get("content", "")
+                if isinstance(raw, list):
+                    raw = " ".join(b.get("text","") for b in raw if b.get("type")=="text")
+                try:
+                    result = json.loads(raw) if isinstance(raw, str) else raw
+                except Exception:
+                    result = {"text": str(raw)[:200]}
+                activity.append({
+                    "event":  "tool_result",
+                    "tool_id": block.get("tool_use_id", ""),
+                    "result": result,
+                })
+
+        if text_parts and role in ("user", "assistant"):
+            text = " ".join(text_parts)
+            # skip [System:...] injections — not real chat messages
+            if not text.startswith("[System:"):
+                messages.append({"role": role, "text": text})
+
+    # pair tool_calls with their results so the frontend can render one card each
+    paired = []
+    pending = {}   # tool_use_id -> activity entry
+    tool_order = []
+    for ev in activity:
+        if ev["event"] == "tool_call":
+            key = ev["tool"]
+            pending[key] = ev
+            tool_order.append(key)
+        elif ev["event"] == "tool_result":
+            # match by order since tool_use_id cross-ref may be complex
+            if tool_order:
+                key = tool_order.pop(0)
+                call = pending.pop(key, {})
+                paired.append({
+                    "tool":   call.get("tool", key),
+                    "input":  call.get("input", {}),
+                    "result": ev["result"],
+                })
+    # flush any unmatched calls
+    for key in tool_order:
+        call = pending.get(key, {})
+        paired.append({"tool": call.get("tool", key), "input": call.get("input", {}), "result": None})
+
+    return jsonify({"messages": messages, "activity": paired})
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -524,6 +671,408 @@ def goldset_delete():
         _save_gold_list(records)
         return jsonify({"ok": True, "total": len(records)})
     return jsonify({"error": "Index out of range"}), 400
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# OSCE AI Analysis  /osce-ai/*
+# ══════════════════════════════════════════════════════════════════════════════
+
+OSCE_AGENT_STEPS = [
+    ("data_read",      "🔍 קורא נתוני המבחן",              "מזהה מספר נבחנים, תחנות, בוחנים ומבנה הנתונים"),
+    ("reliability",    "📊 מנתח מהימנות",                  "בוחן Cronbach Alpha, ICC ו-Weighted Kappa"),
+    ("stations",       "🏥 בוחן תחנות",                    "מזהה תחנות חלשות לפי SQI, Pass Rate ו-BRM"),
+    ("examiners",      "👁️ בוחן כיול בוחנים",             "מאתר בוחנים מחמירים או מקלים ביחס לממוצע"),
+    ("recommendations","💡 מגבש המלצות",                   "מסכם ממצאים ומנסח פעולות נדרשות למרכז הקורס"),
+]
+
+OLLAMA_MODEL   = "llama3.1:8b"
+OLLAMA_BASE    = "http://localhost:11434"
+
+# AI engine settings (runtime-configurable via /osce-ai/config)
+_ai_config = {
+    "engine": "ollama",      # "ollama" | "runai" | "openai"
+    "runai_url": "",
+    "runai_model": "",
+    "openai_key": "",
+    "openai_model": "gpt-4o-mini",
+}
+
+def _osce_ollama_call(prompt: str, system: str) -> str:
+    import urllib.request, urllib.error
+    payload = json.dumps({
+        "model":  OLLAMA_MODEL,
+        "prompt": f"{system}\n\n{prompt}",
+        "stream": False,
+        "options": {"temperature": 0.3, "num_predict": 900},
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        f"{OLLAMA_BASE}/api/generate",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=240) as r:
+            data = json.loads(r.read().decode("utf-8"))
+            return data.get("response", "").strip()
+    except urllib.error.URLError as e:
+        return f"שגיאת חיבור ל-Ollama: {e.reason}. ודא ש-Ollama רץ (ollama serve)."
+    except Exception as e:
+        return f"שגיאה: {e}"
+
+def _osce_runai_call(prompt: str, system: str) -> str:
+    """Call RunAI / vLLM OpenAI-compatible endpoint — no token required."""
+    import urllib.request, urllib.error
+    url   = _ai_config["runai_url"].rstrip("/")
+    model = _ai_config["runai_model"]
+    payload = json.dumps({
+        "model": model,
+        "messages": [
+            {"role": "system",  "content": system},
+            {"role": "user",    "content": prompt},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 900,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        f"{url}/v1/chat/completions",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=240) as r:
+            data = json.loads(r.read().decode("utf-8"))
+            return data["choices"][0]["message"]["content"].strip()
+    except urllib.error.URLError as e:
+        return f"שגיאת חיבור ל-RunAI: {e.reason}"
+    except Exception as e:
+        return f"שגיאה: {e}"
+
+def _osce_openai_call(prompt: str, system: str) -> str:
+    """Call OpenAI API (or any OpenAI-compatible endpoint with a key)."""
+    import urllib.request, urllib.error
+    key   = _ai_config.get("openai_key", "")
+    model = _ai_config.get("openai_model", "gpt-4o-mini")
+    payload = json.dumps({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user",   "content": prompt},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 900,
+    }).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=payload, headers=headers, method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            data = json.loads(r.read().decode("utf-8"))
+            return data["choices"][0]["message"]["content"].strip()
+    except urllib.error.URLError as e:
+        return f"שגיאת חיבור ל-OpenAI: {e.reason}"
+    except Exception as e:
+        return f"שגיאה: {e}"
+
+def _osce_claude_call(prompt: str, system: str) -> str:
+    eng = _ai_config["engine"]
+    if eng == "runai" and _ai_config["runai_url"] and _ai_config["runai_model"]:
+        return _osce_runai_call(prompt, system)
+    if eng == "openai":
+        return _osce_openai_call(prompt, system)
+    return _osce_ollama_call(prompt, system)
+
+
+@app.route("/osce-ai/analyze", methods=["POST"])
+def osce_ai_analyze():
+    data = request.get_json(force=True) or {}
+
+    def _stream():
+        system_he = """אתה מנהל מרכז בחינות OSCE בכיר עם 20 שנות ניסיון בהערכה קלינית ופסיכומטריה רפואית.
+תפקידך: לנתח תוצאות בחינה ולהסביר את המשמעות הקלינית והפסיכומטרית שלהן.
+
+כללי כתיבה:
+- כתוב בעברית ברורה, מקצועית ונגישה למרכז הקורס
+- פרט כל ממצא והסבר מה המשמעות שלו ביחס לאיכות הבחינה ולנבחנים
+- השתמש ברמזי צבע: 🟢 טוב, 🟡 דורש מעקב, 🟠 דורש פעולה, 🔴 דחוף לטיפול
+- בכל נקודה ציין: מה הנתון → מה המשמעות → מה צריך לעשות
+- ענה בפורמט: שורות מופרדות, כל ממצא בשורה חדשה שמתחילה ברמז הצבע המתאים
+- הסבר מושגים מקצועיים (Alpha, ICC, SQI) בשפה פשוטה בסוגריים
+- אל תמציא נתונים שלא סופקו לך"""
+
+        metrics   = data.get("metrics",   {})
+        stations  = data.get("stations",  [])
+        examiners = data.get("examiners", [])
+        custom_p  = data.get("prompts",   {})   # custom prompts from the browser editor
+
+        metrics_txt   = "\n".join(f"  {k}: {v}" for k, v in metrics.items())
+        stations_txt  = "\n".join(
+            f"  {s.get('name','?')}: ממוצע={s.get('avg','?')}, SQI={s.get('sqi','?')}, PassRate={s.get('passRate','?')}%, Cut BRM={s.get('cut','?')}"
+            for s in stations[:12]
+        )
+        examiners_txt = "\n".join(
+            f"  {e.get('name','?')}: ממוצע={e.get('avg','?')}, פער מהממוצע={e.get('gap','?')}, סטטוס={e.get('status','?')}"
+            for e in examiners[:10]
+        )
+
+        # Use custom system prompt if provided, else fall back to default
+        if custom_p.get("system", "").strip():
+            system_he = custom_p["system"].strip()
+
+        def _step_prompt(step_id, data_block, default_instruction):
+            """Prepend exam data to either the custom or default instruction."""
+            instruction = custom_p.get(step_id, "").strip() or default_instruction
+            return f"{data_block}\n\n{instruction}"
+
+        prompts = {
+            "data_read": _step_prompt(
+                "data_read",
+                f"נתוני הבחינה:\n{metrics_txt}",
+                "תאר בשורות ברורות מה רואים בנתונים הכלליים: גודל הקבוצה, מבנה הבחינה, ממוצע הציונים ומה בולט לעין ראשונה. "
+                "לכל נתון — הסבר מה המשמעות שלו לגבי תקינות הבחינה. "
+                "השתמש בסמלי הצבע 🟢🟡🟠🔴 לפי חומרת הממצא."
+            ),
+            "reliability": _step_prompt(
+                "reliability",
+                f"מדדי מהימנות של הבחינה:\n{metrics_txt}",
+                "נתח כל מדד בנפרד: מה הערך שהתקבל, מה הסף המקובל לבחינת high-stakes, ומה המשמעות לגבי אמינות הבחינה. "
+                "Cronbach Alpha: מעל 0.80 נהדר, 0.70-0.79 מקובל, מתחת ל-0.70 בעייתי. "
+                "ICC: מעל 0.75 טוב, 0.50-0.75 מתון, מתחת ל-0.50 חלש. "
+                "Weighted Kappa: מעל 0.60 טוב, 0.40-0.60 מתון, מתחת ל-0.40 חלש. "
+                "לאחר כל מדד: האם תוצאות הבחינה הזאת ניתנות להגנה בפני ועדת אקרדיטציה? הסבר."
+            ),
+            "stations": _step_prompt(
+                "stations",
+                f"נתוני תחנות:\n{stations_txt}\n\nמדדים כלליים:\n{metrics_txt}",
+                "עבור על תחנות הבחינה וזהה: תחנות חזקות, תחנות הדורשות מעקב, ותחנות דחופות לבדיקה. "
+                "לכל תחנה בעייתית הסבר מה הבעיה הספציפית ומה ההשלכה על הנבחנים. "
+                "אם אין נתוני תחנות ספציפיים — ציין זאת ונתח מה שיש."
+            ),
+            "examiners": _step_prompt(
+                "examiners",
+                f"נתוני בוחנים:\n{examiners_txt}\n\nממוצע הבחינה:\n{metrics_txt}",
+                "בחן את דפוס הציונים של כל בוחן. בוחן מחמיר (גבוה מהממוצע ב-10%+) ובוחן מקל (נמוך מהממוצע ב-10%+) "
+                "יוצרים חוסר הוגנות בין נבחנים. הסבר מה ההשפעה הקונקרטית ומה כיול בוחנים צריך לכלול."
+            ),
+            "recommendations": _step_prompt(
+                "recommendations",
+                f"סיכום נתוני הבחינה:\nמדדים:\n{metrics_txt}\nתחנות:\n{stations_txt}\nבוחנים:\n{examiners_txt}",
+                "כמנהל מרכז בחינות, כתוב 5 המלצות ממוספרות וברורות למרכז הקורס. "
+                "לכל המלצה: 🔴/🟠/🟡/🟢 לפי דחיפות, כותרת קצרה, הסבר מה לעשות בדיוק ולמה זה חשוב. "
+                "בסוף הוסף שורת סיכום: האם הבחינה עומדת בסטנדרט?"
+            ),
+        }
+
+        for step_id, title, subtitle in OSCE_AGENT_STEPS:
+            yield f"data: {json.dumps({'type':'step_start','step_id':step_id,'title':title,'subtitle':subtitle}, ensure_ascii=False)}\n\n"
+
+            result = _osce_claude_call(prompts[step_id], system_he)
+
+            yield f"data: {json.dumps({'type':'step_done','step_id':step_id,'title':title,'content':result}, ensure_ascii=False)}\n\n"
+
+        yield "data: __DONE__\n\n"
+
+    return Response(
+        stream_with_context(_stream()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
+
+
+@app.route("/osce")
+def osce_page():
+    from flask import send_file
+    return send_file(r"C:\Users\ygross\Downloads\OSCE_Analytics_Pro_v16_Button_Progress_ItemAnalysis_FIXED.html", mimetype="text/html")
+
+@app.route("/osce-form")
+def osce_form_page():
+    from flask import send_file
+    return send_file(PROJECT_ROOT / "static" / "osce_form_v2.html", mimetype="text/html")
+
+@app.route("/portal")
+def osce_portal():
+    from flask import send_file
+    return send_file(PROJECT_ROOT / "static" / "portal.html", mimetype="text/html")
+
+
+@app.route("/osce-prep/analyze", methods=["POST"])
+def osce_prep_analyze():
+    data = request.get_json(force=True) or {}
+
+    def _stream():
+        custom_p = data.get("prompts", {})
+        reports  = data.get("reports", {})
+        exam_name = data.get("examName", "לא צוין")
+        exam_date = data.get("examDate", "לא צוין")
+        manager   = data.get("manager",  "לא צוין")
+
+        system_he = custom_p.get("system", "").strip() or (
+            "אתה מהנדס מרכז סימולציה מנוסה ומנהל בחינות OSCE בכיר. "
+            "תפקידך: לבחון את המסמכים שהוכנו לקראת הבחינה ולזהות בעיות וסיכונים. "
+            "כתוב בעברית. השתמש ב: 🟢 תקין, 🟡 דורש תשומת לב, 🟠 בעיה, 🔴 עצור-חובה לטפל. "
+            "לכל ממצא: מה הבעיה → מה הסיכון → מה לעשות. אל תמציא נתונים."
+        )
+
+        header = (
+            f"פרטי הבחינה: {exam_name} | תאריך: {exam_date} | מרכז קורס: {manager}\n\n"
+        )
+
+        def _rpt(key):
+            r = (reports.get(key) or "").strip()
+            return r if r else "לא בוצעה בדיקה / לא הועלה קובץ."
+
+        step_defs = [
+            ("schedule",      "📅 בוחן סדר יום",             "schedule",
+             custom_p.get("schedule","").strip() or
+             "בחן את דוח הבדיקה של סדר היום. זהה חפיפות זמן, תחנות חסרות, חדרים ללא מדריך, "
+             "בעיות לוגיסטיות. לכל בעיה — ציין את הסיכון לבחינה."),
+            ("questionnaire", "📝 בוחן שאלונים",             "questionnaire",
+             custom_p.get("questionnaire","").strip() or
+             "בחן את דוח בדיקת השאלונים. זהה שאלות חסרות, כפולות, חוסר בהערכה כללית, "
+             "בעיות במבנה. לכל בעיה — ציין את ההשפעה על הנבחנים."),
+            ("participants",  "👥 בוחן שיבוץ משתתפים וצוות", "participants",
+             custom_p.get("participants","").strip() or
+             "בחן את דוחות שיבוץ המשתתפים והצוות. זהה שורות ריקות, כפילויות, "
+             "חדרים ללא אחראי, נתונים חסרים. לכל בעיה — ציין את הסיכון האופרטיבי."),
+            ("scenarios",     "🎭 בוחן שדות תרחישים",        "scenarios",
+             custom_p.get("scenarios","").strip() or
+             "בחן את דוח שדות התרחישים. זהה שדות ריקים, חוסר בסיפור מקרה, "
+             "תרחישים ללא הנחיות מדריך, טקסטים חשודים."),
+            ("final",         "💡 המלצות לפני הבחינה",       None,
+             custom_p.get("final","").strip() or
+             "לאחר בחינת כל הדוחות — כתוב 5 המלצות דחופות ממוספרות לפני הבחינה. "
+             "כל המלצה: 🔴/🟠/🟡/🟢 לפי דחיפות + מה לעשות בדיוק. "
+             "בסוף שורה: האם הבחינה מוכנה לביצוע?"),
+        ]
+
+        all_reports_txt = ""
+        for _, _, rkey, _ in step_defs[:-1]:
+            if rkey:
+                all_reports_txt += f"\n--- {rkey} ---\n{_rpt(rkey)}\n"
+
+        for step_id, title, rkey, instruction in step_defs:
+            yield f"data: {json.dumps({'type':'step_start','step_id':step_id,'title':title}, ensure_ascii=False)}\n\n"
+
+            if rkey:
+                prompt = f"{header}דוח בדיקה — {title}:\n{_rpt(rkey)}\n\n{instruction}"
+            else:
+                prompt = f"{header}סיכום כל הדוחות:\n{all_reports_txt}\n\n{instruction}"
+
+            result = _osce_ollama_call(prompt, system_he)
+            yield f"data: {json.dumps({'type':'step_done','step_id':step_id,'title':title,'content':result}, ensure_ascii=False)}\n\n"
+
+        yield "data: __DONE__\n\n"
+
+    return Response(
+        stream_with_context(_stream()),
+        mimetype="text/event-stream",
+        headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no","Access-Control-Allow-Origin":"*"},
+    )
+
+
+@app.route("/osce-prep/analyze", methods=["OPTIONS"])
+def osce_prep_options():
+    return Response("", headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+    })
+
+
+@app.route("/osce-ai/config", methods=["GET"])
+def osce_ai_config_get():
+    return Response(
+        json.dumps(_ai_config, ensure_ascii=False),
+        mimetype="application/json",
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+@app.route("/osce-ai/config", methods=["POST"])
+def osce_ai_config_set():
+    body = request.get_json(force=True) or {}
+    for k in ("engine", "runai_url", "runai_model", "openai_key", "openai_model"):
+        if k in body:
+            _ai_config[k] = body[k].strip() if isinstance(body[k], str) else body[k]
+    return Response(
+        json.dumps({"ok": True, "config": _ai_config}, ensure_ascii=False),
+        mimetype="application/json",
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+@app.route("/osce-ai/config", methods=["OPTIONS"])
+def osce_ai_config_options():
+    return Response("", headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    })
+
+@app.route("/osce-ai/ping")
+def osce_ai_ping():
+    import urllib.request, urllib.error
+
+    if _ai_config["engine"] == "openai":
+        ok = bool(_ai_config.get("openai_key"))
+        model = _ai_config.get("openai_model", "gpt-4o-mini")
+        return Response(
+            json.dumps({"ok": ok, "model": model, "engine": "OpenAI",
+                        "base": "api.openai.com", "engine_id": "openai"}, ensure_ascii=False),
+            mimetype="application/json",
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
+
+    if _ai_config["engine"] == "runai" and _ai_config["runai_url"] and _ai_config["runai_model"]:
+        url = _ai_config["runai_url"].rstrip("/")
+        ok = False
+        try:
+            with urllib.request.urlopen(f"{url}/v1/models", timeout=5) as r:
+                ok = r.status == 200
+        except Exception:
+            ok = False
+        return Response(
+            json.dumps({"ok": ok, "model": _ai_config["runai_model"],
+                        "engine": "RunAI (BGU)", "base": url, "engine_id": "runai"}, ensure_ascii=False),
+            mimetype="application/json",
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
+
+    # Default: probe Ollama
+    model_name = OLLAMA_MODEL
+    ok = False
+    try:
+        with urllib.request.urlopen(f"{OLLAMA_BASE}/api/tags", timeout=3) as r:
+            tags = json.loads(r.read().decode("utf-8"))
+            models = [m["name"] for m in tags.get("models", [])]
+            ok = any(m.startswith(OLLAMA_MODEL.split(":")[0]) for m in models)
+            if models:
+                matching = [m for m in models if m.startswith(OLLAMA_MODEL.split(":")[0])]
+                model_name = matching[0] if matching else models[0]
+    except Exception:
+        ok = False
+    return Response(
+        json.dumps({"ok": ok, "model": model_name, "engine": "Ollama (local)",
+                    "base": OLLAMA_BASE, "engine_id": "ollama"}, ensure_ascii=False),
+        mimetype="application/json",
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+@app.route("/osce-ai/analyze", methods=["OPTIONS"])
+def osce_ai_options():
+    return Response("", headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+    })
 
 
 # ══════════════════════════════════════════════════════════════════════════════
